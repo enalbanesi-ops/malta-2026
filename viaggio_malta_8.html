@@ -1,0 +1,2128 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Viaggio a Malta · 24 giugno – 1 luglio 2026</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,700;9..144,900&family=Inter+Tight:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --paper: #f3ecdb;
+    --paper-deep: #ebe2cb;
+    --ink: #1a2735;
+    --ink-soft: #4a5868;
+    --ink-mute: #8b8576;
+    --line: #d6cbb0;
+    --sea: #1b4d7e;
+    --sea-deep: #0f2e4d;
+    --sun: #d4a03c;
+    --terracotta: #c45a3f;
+
+    --d1: #d4a03c; /* arrivo Marsaxlokk – ocra / luzzu giallo */
+    --d2: #2fa6a6; /* mare – turchese */
+    --d3: #1b4d7e; /* Valletta – blu cavalieri */
+    --d4: #c45a3f; /* Mdina entroterra – terracotta */
+    --d5: #5a8b6c; /* Comino domenica – verde laguna */
+    --d6: #e07d4a; /* Gozo – arancio campagna */
+    --d7: #2b5fa8; /* Blue Grotto – cobalto */
+    --d8: #8a7e6a; /* partenza – grigio pietra */
+
+    --shadow-soft: 0 1px 2px rgba(26,39,53,.08), 0 8px 24px rgba(26,39,53,.06);
+    --shadow-card: 0 2px 8px rgba(26,39,53,.06), 0 16px 40px rgba(26,39,53,.10);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    font-family: 'Inter Tight', system-ui, sans-serif;
+    color: var(--ink);
+    background: var(--paper);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* paper texture */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image:
+      radial-gradient(circle at 12% 18%, rgba(212,160,60,.06), transparent 35%),
+      radial-gradient(circle at 88% 82%, rgba(27,77,126,.05), transparent 40%);
+    mix-blend-mode: multiply;
+  }
+
+  .app {
+    position: relative;
+    display: grid;
+    grid-template-columns: 420px 1fr;
+    height: 100vh;
+    z-index: 1;
+  }
+
+  /* ─── SIDEBAR ─────────────────────────────────────────── */
+  .sidebar {
+    background: var(--paper);
+    border-right: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .brand {
+    padding: 32px 32px 22px;
+    border-bottom: 1px solid var(--line);
+    position: relative;
+  }
+  .brand::after {
+    content: '';
+    position: absolute; left: 32px; right: 32px; bottom: -1px; height: 2px;
+    background: linear-gradient(90deg, var(--sun), var(--terracotta) 35%, var(--sea) 70%, transparent);
+    opacity: .55;
+  }
+
+  .eyebrow {
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 11px;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    font-weight: 500;
+  }
+  .eyebrow .dash { margin: 0 8px; opacity: .5; }
+
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 400;
+    font-variation-settings: 'opsz' 144, 'SOFT' 100;
+    font-size: 64px;
+    line-height: .95;
+    letter-spacing: -.02em;
+    margin: 10px 0 6px;
+    color: var(--ink);
+  }
+  h1 em {
+    font-style: italic;
+    font-weight: 300;
+    color: var(--sea);
+  }
+
+  .subtitle {
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--ink-soft);
+    max-width: 320px;
+    margin: 8px 0 0;
+  }
+
+  .legend-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+  .pill-btn {
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 11px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    padding: 7px 12px;
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--ink-soft);
+    cursor: pointer;
+    border-radius: 20px;
+    transition: all .15s ease;
+  }
+  .pill-btn:hover { background: var(--paper-deep); border-color: var(--ink-mute); color: var(--ink); }
+  .pill-btn.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+  /* day list */
+  .days-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 18px 100px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--line) transparent;
+  }
+  .days-scroll::-webkit-scrollbar { width: 6px; }
+  .days-scroll::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+
+  .day-card {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 14px;
+    padding: 14px 14px 14px 18px;
+    margin-bottom: 4px;
+    cursor: pointer;
+    position: relative;
+    transition: all .2s ease;
+  }
+  .day-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 18px; bottom: 18px;
+    width: 3px;
+    background: var(--day-color);
+    border-radius: 2px;
+    opacity: .7;
+  }
+  .day-card:hover {
+    background: rgba(255,255,255,.5);
+    border-color: var(--line);
+  }
+  .day-card.is-active {
+    background: #fff;
+    border-color: var(--line);
+    box-shadow: var(--shadow-card);
+  }
+
+  .day-head {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 4px;
+  }
+  .day-num {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-style: italic;
+    font-size: 13px;
+    color: var(--day-color);
+    letter-spacing: .04em;
+  }
+  .day-date {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .18em;
+    color: var(--ink-mute);
+    font-weight: 500;
+  }
+  .day-title {
+    font-family: 'Fraunces', serif;
+    font-weight: 400;
+    font-size: 18px;
+    line-height: 1.25;
+    letter-spacing: -.005em;
+    color: var(--ink);
+    margin: 2px 0 0;
+  }
+  .day-summary {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    margin: 6px 0 0;
+    display: none;
+  }
+  .day-card.is-active .day-summary { display: block; }
+
+  .day-places {
+    margin: 12px 0 0;
+    padding: 0;
+    list-style: none;
+    display: none;
+  }
+  .day-card.is-active .day-places { display: block; }
+
+  .day-place {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 7px 0;
+    border-top: 1px dashed var(--line);
+    cursor: pointer;
+    transition: opacity .15s;
+  }
+  .day-place:hover { opacity: .65; }
+  .day-place-num {
+    flex: 0 0 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--day-color);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1px;
+    font-family: 'Inter Tight', sans-serif;
+  }
+  .day-place-text {
+    flex: 1;
+    min-width: 0;
+  }
+  .day-place-name {
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--ink);
+    line-height: 1.3;
+  }
+  .day-place-kind {
+    font-size: 11px;
+    color: var(--ink-mute);
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    margin-top: 1px;
+    font-weight: 500;
+  }
+
+  /* ─── MAP ─────────────────────────────────────────────── */
+  .map-pane {
+    position: relative;
+    overflow: hidden;
+  }
+  #map {
+    position: absolute;
+    inset: 0;
+    background: #c7d8e0;
+  }
+
+  /* overlay header on map (corner) */
+
+  /* custom markers */
+  .map-marker {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--day-color, var(--ink));
+    color: #fff;
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 6px rgba(0,0,0,.25), 0 6px 16px rgba(0,0,0,.15);
+    transition: transform .15s ease;
+    cursor: pointer;
+  }
+  .map-marker:hover {
+    transform: scale(1.18);
+    z-index: 1000;
+  }
+  .map-marker.is-base {
+    background: var(--ink);
+    width: 34px;
+    height: 34px;
+    font-size: 13px;
+    border: 3px solid #fff;
+  }
+  .map-marker.is-airport {
+    background: var(--ink-mute);
+    border-radius: 4px;
+    transform: rotate(45deg);
+    width: 22px;
+    height: 22px;
+  }
+  .map-marker.is-airport span {
+    transform: rotate(-45deg);
+    font-size: 10px;
+  }
+
+  /* popup styling */
+  .leaflet-popup-content-wrapper {
+    border-radius: 12px;
+    background: var(--paper);
+    box-shadow: var(--shadow-card);
+    border: 1px solid var(--line);
+    padding: 4px;
+  }
+  .leaflet-popup-content {
+    margin: 16px 18px;
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    width: 240px !important;
+  }
+  .leaflet-popup-tip { background: var(--paper); }
+
+  .popup-eyebrow {
+    font-size: 10px;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: var(--day-color, var(--ink-mute));
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .popup-title {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 19px;
+    line-height: 1.15;
+    color: var(--ink);
+    margin: 0 0 6px;
+    letter-spacing: -.01em;
+  }
+  .popup-kind {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: var(--ink-mute);
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+  .popup-desc { font-size: 13px; line-height: 1.55; color: var(--ink-soft); }
+
+  /* Leaflet tweaks */
+  .leaflet-control-zoom a {
+    background: var(--paper) !important;
+    color: var(--ink) !important;
+    border: 1px solid var(--line) !important;
+    font-weight: 400 !important;
+  }
+  .leaflet-control-zoom a:hover { background: var(--paper-deep) !important; }
+  .leaflet-control-attribution {
+    background: rgba(243,236,219,.85) !important;
+    font-size: 10px !important;
+    color: var(--ink-mute) !important;
+  }
+  .leaflet-control-attribution a { color: var(--ink-soft) !important; }
+
+  /* footer credit on sidebar */
+  .footer {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    padding: 14px 32px 16px;
+    background: linear-gradient(to top, var(--paper) 60%, rgba(243,236,219,0));
+    pointer-events: none;
+    font-size: 10.5px;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    font-weight: 500;
+  }
+  .footer span { color: var(--sea); font-weight: 600; }
+
+  /* ─── DAY PILLS STRIP (mobile primary nav) ─────────── */
+  .day-pills-strip {
+    display: none; /* hidden on desktop, shown on mobile */
+    gap: 6px;
+    padding: 10px 14px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-shrink: 0;
+    background: var(--paper-deep);
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+  }
+  .day-pills-strip::-webkit-scrollbar { display: none; }
+
+  .day-pill {
+    flex-shrink: 0;
+    scroll-snap-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 54px;
+    padding: 7px 10px 6px;
+    background: var(--paper);
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: transform .15s ease, background .2s ease, border-color .2s ease, color .2s ease;
+    color: var(--ink-soft);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .day-pill:active { transform: scale(.96); }
+  .day-pill.is-active {
+    background: var(--pill-color);
+    border-color: var(--pill-color);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(0,0,0,.12);
+  }
+  .day-pill-num {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-style: italic;
+    font-size: 16px;
+    line-height: 1;
+    letter-spacing: -.01em;
+  }
+  .day-pill-date {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: .14em;
+    margin-top: 3px;
+    font-weight: 600;
+    opacity: .85;
+  }
+
+  /* secondary markers (extras: restaurants, bars, shops) */
+  .map-marker.secondary {
+    width: 24px;
+    height: 24px;
+    background: #fff;
+    color: var(--day-color, var(--ink));
+    border: 2px solid var(--day-color, var(--ink));
+    box-shadow: 0 1px 3px rgba(0,0,0,.18), 0 4px 10px rgba(0,0,0,.10);
+  }
+  .map-marker.secondary svg {
+    width: 13px;
+    height: 13px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .map-marker.secondary:hover { transform: scale(1.25); }
+
+  /* "Leggi l'itinerario completo" link inside day cards */
+  .read-full-link {
+    display: none; /* shown only when day card is active */
+    align-items: center;
+    gap: 8px;
+    margin-top: 16px;
+    padding: 9px 16px 9px 14px;
+    background: transparent;
+    border: 1.5px solid var(--day-color);
+    color: var(--day-color);
+    border-radius: 22px;
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .14em;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all .15s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .day-card.is-active .read-full-link { display: inline-flex; }
+  .read-full-link:hover {
+    background: var(--day-color);
+    color: #fff;
+  }
+  .read-full-link svg {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* ─── DAY MODAL (full itinerary text) ──────────────── */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    background: rgba(15, 30, 45, .55);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    opacity: 0;
+    transition: opacity .25s ease;
+  }
+  .modal-backdrop.is-open {
+    display: flex;
+    opacity: 1;
+  }
+
+  .modal-card {
+    background: var(--paper);
+    width: 100%;
+    max-width: 720px;
+    max-height: 90vh;
+    border-radius: 14px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 30px 100px rgba(0,0,0,.40);
+    border: 1px solid var(--line);
+    overflow: hidden;
+    transform: scale(.96);
+    transition: transform .25s ease;
+  }
+  .modal-backdrop.is-open .modal-card { transform: scale(1); }
+  .modal-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+    background: var(--day-color, var(--sea));
+    z-index: 1;
+  }
+
+  .modal-header {
+    padding: 22px 28px 18px 32px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+  .modal-eyebrow {
+    font-size: 11px;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: var(--day-color, var(--ink-mute));
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .modal-day-label {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 400;
+    font-style: italic;
+    line-height: 1.15;
+    letter-spacing: -.01em;
+    color: var(--ink);
+  }
+  .modal-close {
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    background: var(--paper);
+    cursor: pointer;
+    font-size: 22px;
+    line-height: 1;
+    color: var(--ink-soft);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all .15s;
+    font-family: 'Inter Tight', sans-serif;
+    padding: 0;
+  }
+  .modal-close:hover {
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+  }
+
+  .modal-content {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding: 22px 32px 36px;
+    flex: 1;
+  }
+  .modal-content > h2:first-child { display: none; }
+  .modal-content h3 {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 19px;
+    line-height: 1.2;
+    margin: 24px 0 10px;
+    color: var(--day-color, var(--ink));
+    letter-spacing: -.005em;
+  }
+  .modal-content h3 + h4,
+  .modal-content h2 + h3:first-of-type { margin-top: 6px; }
+  .modal-content h4 {
+    font-family: 'Inter Tight', sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .14em;
+    margin: 20px 0 6px;
+    color: var(--ink);
+  }
+  .modal-content p {
+    font-size: 14.5px;
+    line-height: 1.65;
+    margin: 0 0 13px;
+    color: var(--ink-soft);
+  }
+  .modal-content ul {
+    margin: 0 0 14px;
+    padding-left: 20px;
+  }
+  .modal-content li {
+    font-size: 14.5px;
+    line-height: 1.6;
+    margin-bottom: 7px;
+    color: var(--ink-soft);
+  }
+  .modal-content strong { color: var(--ink); font-weight: 600; }
+  .modal-content em { color: var(--ink); font-style: italic; }
+
+  /* Marker filter legend below the brand pills on desktop */
+  .marker-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    margin-top: 14px;
+    font-size: 10.5px;
+    color: var(--ink-mute);
+    letter-spacing: .04em;
+  }
+  .marker-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    /* static item (Tappa principale) */
+  }
+  .marker-legend-item.layer-toggle {
+    cursor: pointer;
+    padding: 4px 8px 4px 5px;
+    border-radius: 20px;
+    border: 1.5px solid transparent;
+    transition: all .18s ease;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .marker-legend-item.layer-toggle:hover {
+    border-color: var(--line);
+    background: var(--paper-deep);
+    color: var(--ink);
+  }
+  /* OFF state — grey and semi-transparent */
+  .marker-legend-item.layer-toggle.is-off {
+    opacity: .42;
+  }
+  .marker-legend-item.layer-toggle.is-off .dot {
+    border-color: var(--ink-mute) !important;
+    background: transparent !important;
+  }
+  .marker-legend-item.layer-toggle.is-off .dot svg {
+    stroke: var(--ink-mute) !important;
+  }
+  /* ON state — coloured border highlight */
+  .marker-legend-item.layer-toggle.is-on {
+    border-color: var(--toggle-color, var(--ink-soft));
+    color: var(--ink);
+  }
+  .marker-legend-item.layer-toggle.is-on .dot {
+    border-color: var(--toggle-color, var(--ink-soft)) !important;
+  }
+  .marker-legend-item.layer-toggle.is-on .dot svg {
+    stroke: var(--toggle-color, var(--ink-soft)) !important;
+  }
+  .marker-legend-item .dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid var(--ink-soft);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: border-color .18s, background .18s;
+  }
+  .marker-legend-item .dot svg {
+    width: 8px;
+    height: 8px;
+    stroke: var(--ink-soft);
+    fill: none;
+    stroke-width: 2.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: stroke .18s;
+  }
+  .marker-legend-item .dot.numbered {
+    background: var(--ink-soft);
+    border-color: var(--ink-soft);
+    color: #fff;
+    font-size: 8px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  /* ─── RESPONSIVE ────────────────────────────────────── */
+  @media (max-width: 880px) {
+    .app {
+      grid-template-columns: 1fr;
+      grid-template-rows: 38vh 1fr;
+      height: 100dvh; /* dynamic viewport for mobile browser UI */
+    }
+    .sidebar {
+      border-right: none;
+      border-top: 1px solid var(--line);
+      min-height: 0; /* allow flex children to shrink */
+    }
+    .map-pane { order: -1; } /* map above sidebar */
+
+    /* compact brand */
+    .brand { padding: 14px 18px 12px; }
+    .brand::after { left: 18px; right: 18px; }
+    h1 {
+      font-size: 30px;
+      margin: 4px 0 0;
+    }
+    h1 br { display: none; }
+    h1 em { display: none; }
+    .subtitle { display: none; }
+    .legend-actions { display: none; }
+    .eyebrow { font-size: 10px; }
+
+    /* show the pills strip */
+    .day-pills-strip { display: flex; }
+
+    /* days-scroll: only show active day, contain scroll */
+    .days-scroll {
+      padding: 14px 16px 24px;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+    }
+    .day-card { display: none; padding-left: 0; margin-bottom: 0; }
+    .day-card::before { display: none; }
+    .day-card.is-active {
+      display: block;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      padding: 0;
+    }
+    .day-card.is-active .day-title { font-size: 22px; line-height: 1.18; margin-top: 6px; }
+    .day-card.is-active .day-summary { font-size: 13.5px; margin-top: 10px; }
+    .day-card.is-active .day-places { margin-top: 14px; }
+    .day-place { padding: 9px 0; }
+    .day-place-num { width: 24px; height: 24px; flex-basis: 24px; }
+    .day-place-name { font-size: 14px; }
+
+    .modal-backdrop { padding: 0; }
+    .modal-card {
+      max-width: 100%;
+      max-height: 100%;
+      height: 100%;
+      width: 100%;
+      border-radius: 0;
+    }
+    .modal-header { padding: 14px 18px 12px 24px; }
+    .modal-eyebrow { font-size: 10px; }
+    .modal-day-label { font-size: 17px; }
+    .modal-close { width: 34px; height: 34px; font-size: 20px; }
+    .modal-content { padding: 16px 20px 32px; }
+    .modal-content h3 { font-size: 17px; margin: 18px 0 8px; }
+    .modal-content h4 { font-size: 11px; margin: 16px 0 5px; }
+    .modal-content p { font-size: 14px; line-height: 1.6; }
+    .modal-content li { font-size: 14px; line-height: 1.55; }
+
+    .read-full-link {
+      width: 100%;
+      justify-content: center;
+      margin-top: 18px;
+      padding: 11px 16px;
+      font-size: 11px;
+    }
+
+    .footer { display: none; }
+  }
+
+  /* Very narrow phones (≤ 380px) — tighten further */
+  @media (max-width: 380px) {
+    .day-pill { min-width: 48px; padding: 6px 8px 5px; }
+    .day-pill-num { font-size: 14px; }
+    .day-pill-date { font-size: 8px; letter-spacing: .12em; }
+    h1 { font-size: 26px; }
+    .brand { padding: 12px 16px 10px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ─────────── SIDEBAR ─────────── -->
+  <aside class="sidebar">
+    <header class="brand">
+      <div class="eyebrow">24 giugno <span class="dash">→</span> 1 luglio 2026</div>
+      <h1>Malta<br><em>otto giorni</em></h1>
+      <p class="subtitle">Dal porto di Marsaxlokk alle scogliere di Dingli, passando per Valletta, Mdina, Comino e Gozo. Base fissa: Duncan Guesthouse.</p>
+      <div class="legend-actions">
+        <button class="pill-btn active" id="btn-all">Tutto il viaggio</button>
+        <button class="pill-btn" id="btn-collapse">Comprimi giorni</button>
+      </div>
+      <div class="marker-legend" aria-label="Legenda dei marcatori sulla mappa">
+        <span class="marker-legend-item"><span class="dot numbered">1</span>Tappa principale</span>
+        <span class="marker-legend-item layer-toggle is-on" data-layer="restaurant" style="--toggle-color:#c0392b" role="button" aria-pressed="true" title="Mostra/nascondi ristoranti">
+          <span class="dot"><svg viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h2c1.1 0 2-.9 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg></span>Ristorante
+        </span>
+        <span class="marker-legend-item layer-toggle is-on" data-layer="cafe" style="--toggle-color:#7b5ea7" role="button" aria-pressed="true" title="Mostra/nascondi bar e pastizzi">
+          <span class="dot"><svg viewBox="0 0 24 24"><path d="M10 2v2"/><path d="M14 2v2"/><path d="M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1"/><path d="M6 2v2"/></svg></span>Bar/Pastizzi
+        </span>
+        <span class="marker-legend-item layer-toggle is-on" data-layer="bar" style="--toggle-color:#d4a03c" role="button" aria-pressed="true" title="Mostra/nascondi aperitivi e wine bar">
+          <span class="dot"><svg viewBox="0 0 24 24"><path d="M8 22h8"/><path d="M7 10h10"/><path d="M12 15v7"/><path d="M12 15a5 5 0 0 0 5-5V3H7v7a5 5 0 0 0 5 5Z"/></svg></span>Aperitivo
+        </span>
+        <span class="marker-legend-item layer-toggle is-on" data-layer="gelato" style="--toggle-color:#e07d4a" role="button" aria-pressed="true" title="Mostra/nascondi gelaterie e pasticcerie">
+          <span class="dot"><svg viewBox="0 0 24 24"><path d="m7 11 4.08 10.35a1 1 0 0 0 1.84 0L17 11"/><path d="M17 7A5 5 0 0 0 7 7"/><path d="M17 7a2 2 0 0 1 0 4H7a2 2 0 0 1 0-4"/></svg></span>Dolci/Gelato
+        </span>
+        <span class="marker-legend-item layer-toggle is-on" data-layer="shop" style="--toggle-color:#5a8b6c" role="button" aria-pressed="true" title="Mostra/nascondi botteghe e mercati">
+          <span class="dot"><svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span>Bottega
+        </span>
+      </div>
+    </header>
+
+    <nav class="day-pills-strip" id="day-pills" aria-label="Selezione giorno"></nav>
+
+    <div class="days-scroll" id="days-list">
+      <!-- days injected by JS -->
+    </div>
+
+    <div class="footer">Itinerario · <span>Marsaxlokk</span></div>
+  </aside>
+
+  <!-- ─────────── MAP ─────────── -->
+  <main class="map-pane">
+    <div id="map"></div>
+  </main>
+</div>
+
+<!-- ─── DAY MODAL (full itinerary text) ─── -->
+<div class="modal-backdrop" id="day-modal" role="dialog" aria-modal="true" aria-labelledby="modal-day-label" hidden>
+  <div class="modal-card">
+    <header class="modal-header">
+      <div>
+        <div class="modal-eyebrow" id="modal-eyebrow">Giorno · data</div>
+        <h2 class="modal-day-label" id="modal-day-label">Titolo della giornata</h2>
+      </div>
+      <button type="button" class="modal-close" id="modal-close" aria-label="Chiudi">×</button>
+    </header>
+    <div class="modal-content" id="modal-content"></div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+/* ─── DATA ─────────────────────────────────────────────── */
+const DAYS = [
+  {
+    id: 1,
+    date: 'Mer 24 giugno',
+    color: 'var(--d1)',
+    colorHex: '#d4a03c',
+    title: 'Arrivo e prima scoperta di Marsaxlokk',
+    summary: 'Volo Ryanair da Roma, ritiro dell\'auto a noleggio e trasferimento a Marsaxlokk. Pomeriggio sul lungomare tra i luzzu colorati, cena di pesce sul porto.',
+    places: [
+      { name: 'Aeroporto di Malta (MLA)', lat: 35.8517424, lon: 14.4863361, kind: 'Arrivo · 16:10', desc: 'Volo Ryanair da Fiumicino. Ritiro bagagli e auto a noleggio in aeroporto.' },
+      { name: 'Duncan Guesthouse', lat: 35.8415286, lon: 14.5452034, kind: 'Base · Marsaxlokk', desc: 'A pochi minuti a piedi dal porto, nel cuore del villaggio di pescatori. Punto fisso per tutta la settimana.', isBase: true },
+      { name: 'Lungomare e luzzu (Xatt is-Sajjieda)', lat: 35.8410905, lon: 14.5452762, kind: 'Passeggiata · pomeriggio', desc: 'Le barche colorate con l\'occhio di Osiride sulla prua, i pescatori che riparano le reti. La vista più iconica di Malta.' },
+      { name: 'Chiesa di Nostra Signora di Pompei', lat: 35.8414514, lon: 14.5446958, kind: 'Centro storico', desc: 'Chiesa parrocchiale del 1897, facciata barocca con due campanili gemelli. Interno con altare in marmo di Carrara.' },
+      { name: 'Forte di San Luciano', lat: 35.8304842, lon: 14.5432165, kind: 'Vista panoramica · 15 min a piedi', desc: 'Torre di guardia del XVII secolo sul promontorio. Bel panorama sulla baia con i luzzu sullo sfondo.' }
+    ]
+  },
+  {
+    id: 2,
+    date: 'Gio 25 giugno',
+    color: 'var(--d2)',
+    colorHex: '#2fa6a6',
+    title: 'Mare: St. Peter\'s Pool e costa di Delimara',
+    summary: 'Giornata dedicata interamente al mare. Mattina alla piscina naturale di St. Peter\'s Pool, deviazioni curiose sul promontorio, eventuale tappa fresca a Għar Dalam o seconda spiaggia.',
+    places: [
+      { name: 'Duncan Guesthouse', lat: 35.8415286, lon: 14.5452034, kind: 'Partenza · mattina', desc: 'Colazione e pastizz prima di partire per la spiaggia.', isBase: true },
+      { name: 'St. Peter\'s Pool', lat: 35.8335715, lon: 14.5596433, kind: 'Mattina · bagno', desc: 'Piscina naturale a ferro di cavallo nelle rocce calcaree. Acque turchesi, snorkelling eccellente, tuffi dagli scogli. Arrivare entro le 9:30.' },
+      { name: 'Hofriet Window', lat: 35.8383307, lon: 14.5630116, kind: 'Arco naturale · passeggiata', desc: 'Arco scolpito dal mare nella roccia. Vista mozzafiato sul Mediterraneo aperto. A pochi minuti a piedi tra le calette.' },
+      { name: 'Il-Kalanka (Kalanka Bay)', lat: 35.8237443, lon: 14.5602470, kind: 'Caletta bonus · meno gente', desc: 'Più appartata di St. Peter\'s Pool, acque turchesi e qualche zona d\'ombra tra le rocce. 2 km più avanti sulla penisola.' },
+      { name: 'Għar Dalam', lat: 35.8365032, lon: 14.5280405, kind: 'Pomeriggio facoltativo · al fresco', desc: 'Grotta preistorica con resti di ippopotami ed elefanti nani dell\'Era Glaciale. Visita di 40-50 minuti al fresco.' },
+      { name: 'St. Thomas Bay (Marsascala)', lat: 35.851859, lon: 14.5662556, kind: 'Alternativa pomeriggio', desc: 'Baia ampia frequentata dai locali. Mix di sabbia e roccia, snorkelling sui lati, noleggio moto d\'acqua.' }
+    ]
+  },
+  {
+    id: 3,
+    date: 'Ven 26 giugno',
+    color: 'var(--d3)',
+    colorHex: '#1b4d7e',
+    title: 'Valletta e le Tre Città',
+    summary: 'Una giornata nella capitale UNESCO: Co-Cattedrale di San Giovanni con i Caravaggio, panorami dai Barrakka Gardens, traghetto alle Tre Città. Cena a Vittoriosa.',
+    places: [
+      { name: 'City Gate (Renzo Piano)', lat: 35.8961003, lon: 14.5090147, kind: 'Ingresso · mattina', desc: 'Il portale monumentale inaugurato nel 2014. Da qui parte Triq ir-Repubblika, l\'asse pedonale principale.' },
+      { name: 'Co-Cattedrale di San Giovanni', lat: 35.8975921, lon: 14.5124951, kind: 'Mattina · prenotare online', desc: 'Capolavoro del barocco maltese. Custodisce la Decollazione di San Giovanni Battista di Caravaggio, l\'unica opera firmata dal pittore. ~€15.' },
+      { name: 'Palazzo del Gran Maestro', lat: 35.8984755, lon: 14.5138645, kind: 'Piazza San Giorgio', desc: 'Sede dei Gran Maestri dell\'Ordine, oggi residenza ufficiale del Presidente. L\'esterno è visitabile liberamente.' },
+      { name: 'Upper Barrakka Gardens', lat: 35.8951791, lon: 14.5119437, kind: 'Panorama · Saluto del cannone 12:00', desc: 'Giardini pensili con vista spettacolare sul Grand Harbour e le Tre Città. Il colpo di cannone alle 12:00 è il momento da non perdere.' },
+      { name: 'Forte Sant\'Angelo (Vittoriosa)', lat: 35.8926099, lon: 14.5176125, kind: 'Tre Città · pomeriggio', desc: 'Fortezza medievale, cuore della resistenza al Grande Assedio del 1565. Dall\'alto delle mura si vede tutto il Grand Harbour. €13.' },
+      { name: 'Gardjola Gardens (Senglea)', lat: 35.8905822, lon: 14.5141433, kind: 'Punta di Senglea · vista 360°', desc: 'Piccola torretta di guardia con vista panoramica a 360°: Valletta da un lato, Vittoriosa dall\'altro, il mare aperto sul terzo.' }
+    ]
+  },
+  {
+    id: 4,
+    date: 'Sab 27 giugno',
+    color: 'var(--d4)',
+    colorHex: '#c45a3f',
+    title: 'Mdina, Rabat e Dingli Cliffs',
+    summary: 'Entroterra e versante occidentale. Mdina la silenziosa al mattino, pranzo a Rabat tra i pastizzi del Crystal Palace, vetrai di Ta\' Qali, e nel pomeriggio le scogliere più alte di Malta. Cena a Mdina di notte.',
+    places: [
+      { name: 'Mdina Main Gate', lat: 35.8847275, lon: 14.4034380, kind: 'Mattina presto · prima delle 9:30', desc: 'Portale barocco del 1724. Arrivare presto per evitare i pullman turistici che iniziano alle 10:00.' },
+      { name: 'Cattedrale di San Paolo (Mdina)', lat: 35.8864128, lon: 14.4037997, kind: 'Cuore religioso', desc: 'Capolavoro barocco di Lorenzo Gafà. Museo annesso con acqueforti di Albrecht Dürer.' },
+      { name: 'Fontanella Tea Garden', lat: 35.8871467, lon: 14.4037212, kind: 'Sosta sui bastioni', desc: 'Terrazza sulle mura con vista su mezza Malta. Famosa per la torta al cioccolato-arancio e la torta alla nocciola.' },
+      { name: 'Catacombe di San Paolo (Rabat)', lat: 35.8804190, lon: 14.3976018, kind: 'Pranzo + fresco', desc: 'Labirinto sotterraneo paleocristiano su due livelli. Vicino il Crystal Palace Bar per pastizzi caldi.' },
+      { name: 'Ta\' Qali Crafts Village', lat: 35.8907995, lon: 14.4180799, kind: 'Artigianato · Mdina Glass', desc: 'Capanne Nissan trasformate in laboratori. Vetro soffiato, filigrana d\'argento, ceramiche e merletti maltesi.' },
+      { name: 'Dingli Cliffs · Cappella S. Maria Maddalena', lat: 35.8516996, lon: 14.3855945, kind: 'Tardo pomeriggio · tramonto', desc: 'Scogliere alte 253 m sul Mediterraneo aperto. Vista sull\'isolotto di Filfla. Il tramonto qui è uno dei più belli di Malta.' }
+    ]
+  },
+  {
+    id: 5,
+    date: 'Dom 28 giugno',
+    color: 'var(--d5)',
+    colorHex: '#5a8b6c',
+    title: 'Mercato di Marsaxlokk + Comino / Blue Lagoon',
+    summary: 'Sveglia all\'alba per il mercato della domenica sul porto. Poi in auto a Ċirkewwa, traghetto per Comino, mattinata e pranzo alla Blue Lagoon. Sosta a Mosta sulla via del ritorno.',
+    places: [
+      { name: 'Mercato domenicale di Marsaxlokk', lat: 35.8410905, lon: 14.5452762, kind: 'Alba · 6:30-8:00', desc: 'Pescatori che scaricano il pescato dai luzzu. Miele di carrubo, conserve, gbejniet freschi. Arrivare presto, prima dei pullman delle 10.' },
+      { name: 'Terminal traghetti Ċirkewwa', lat: 35.9879522, lon: 14.3286445, kind: 'Imbarco per Comino', desc: 'Traghetto ogni 30 min, ~20-25 min di traversata. Prima barca disponibile per battere la folla. Parcheggio gratuito.' },
+      { name: 'Blue Lagoon (Comino)', lat: 36.0140854, lon: 14.3244281, kind: 'Mattina/pomeriggio · permesso obbligatorio', desc: 'Piscina naturale tra Comino e Cominotto. Acque turchesi, fondali rocciosi, snorkelling eccellente. Permesso gratuito da blcomino.com.' },
+      { name: 'Santa Marija Bay (Comino)', lat: 36.0182055, lon: 14.3373708, kind: 'Fuga dalla folla · 25 min a piedi', desc: 'Baia riparata, meno frequentata della Blue Lagoon. Stessa qualità d\'acqua ma in silenzio.' },
+      { name: 'Rotunda di Mosta', lat: 35.9097735, lon: 14.4259360, kind: 'Sosta al ritorno', desc: 'Chiesa di Santa Maria Assunta con la terza cupola più grande d\'Europa. Famosa per il \'miracolo di Mosta\' del 1942 (bomba caduta senza esplodere).' }
+    ]
+  },
+  {
+    id: 6,
+    date: 'Lun 29 giugno',
+    color: 'var(--d6)',
+    colorHex: '#e07d4a',
+    title: 'L\'isola di Gozo in giornata',
+    summary: 'Traghetto a Mġarr portando l\'auto. Cittadella di Victoria, templi di Ġgantija, saline di Xwejni e Valle di Wied il-Għasri. Dwejra e Inland Sea nel pomeriggio. Ta\' Ċenċ Cliffs al tramonto. Cena a Xlendi al The Boathouse.',
+    places: [
+      { name: 'Porto di Mġarr (Gozo)', lat: 36.0242161, lon: 14.2988338, kind: 'Arrivo a Gozo', desc: 'Sbarco dal traghetto. Si paga solo al ritorno. Caffè al One80 Kitchen prima di partire per Victoria.' },
+      { name: 'Cittadella di Victoria', lat: 36.0465151, lon: 14.2397758, kind: 'Mattina · capitale di Gozo', desc: 'Città murata medievale restaurata. Cattedrale con cupola in trompe-l\'œil, mura panoramiche con vista a 360° sull\'isola. Combo museo €5.' },
+      { name: 'Templi di Ġgantija (Xagħra)', lat: 36.0489144, lon: 14.2678184, kind: 'Metà mattina · siti UNESCO', desc: 'Strutture autoportanti tra le più antiche del mondo, oltre 5.500 anni. Megaliti da 5 tonnellate. €10 adulti.' },
+      { name: 'Saline di Xwejni (Marsalforn)', lat: 36.0797407, lon: 14.2460560, kind: 'Primo pomeriggio · raccolta a giugno', desc: 'Saline fenicie e romane ancora in uso. Sacchetti di sale al timo o rosmarino dalla famiglia Cini (dal 1969).' },
+      { name: 'Valle di Wied il-Għasri', lat: 36.0755, lon: 14.2258, kind: 'Primo pomeriggio · gorgia sul mare', desc: 'Gola profonda tra scogliere di calcare che scende al mare. ~100 gradini fino alla piccola baia sassosa. Acque cristalline, frequentata dai sub per la Cathedral Cave.' },
+      { name: 'Dwejra Bay · Inland Sea', lat: 36.053715, lon: 14.191094, kind: 'Pomeriggio · giro in barca €4', desc: 'Laguna interna collegata al mare aperto da un tunnel naturale di 80 m. Pagamento contanti, 15-20 minuti di emozione.' },
+      { name: 'Ta\' Ċenċ Cliffs · Sannat', lat: 36.0222, lon: 14.2526, kind: 'Tardo pomeriggio · tramonto', desc: 'Le scogliere più alte di Gozo, 138 m a picco sul mare. Sentiero di 15 min dal parcheggio. Silenzio totale, colonia di berte maggiori. Tramonto spettacolare.' },
+      { name: 'The Boathouse · Xlendi', lat: 36.0284978, lon: 14.213798, kind: 'Cena · lungomare di Xlendi', desc: 'Il ristorante che i maltesi stessi scelgono a Gozo. Pesce freschissimo esposto in vetrina, pasta fresca, Trio di Calamari. Prenotazione obbligatoria.' }
+    ]
+  },
+  {
+    id: 7,
+    date: 'Mar 30 giugno',
+    color: 'var(--d7)',
+    colorHex: '#2b5fa8',
+    title: 'Blue Grotto, templi megalitici, ultimo mare',
+    summary: 'Mattina presto alla Blue Grotto per la luce migliore, poi i templi di Ħaġar Qim e Mnajdra sulla scogliera. Pomeriggio a Għar Lapsi, caletta segreta dei maltesi. Cena al Corsaro a Wied iż-Żurrieq.',
+    places: [
+      { name: 'Blue Grotto · Wied iż-Żurrieq', lat: 35.8197615, lon: 14.4517904, kind: 'Mattina presto · 8:30-9:30', desc: 'Giro in barca tra le grotte, ~€10 contanti. Luce migliore prima delle 13. Anche solo il viewpoint dall\'alto vale la sosta.' },
+      { name: 'Ħaġar Qim', lat: 35.8276898, lon: 14.4420772, kind: 'Tempio megalitico · UNESCO', desc: 'Tempio del 3600 a.C., 1200 anni più vecchio delle piramidi. Audioguida gratuita scaricabile via QR. €10.' },
+      { name: 'Mnajdra', lat: 35.8265898, lon: 14.4365263, kind: 'Sentiero in discesa', desc: 'Il tempio meridionale è allineato col sole agli equinozi. Affacciato sul mare con vista su Filfla. Biglietto unico con Ħaġar Qim.' },
+      { name: 'Maqluba (dolina di Qrendi)', lat: 35.8307515, lon: 14.4576983, kind: 'Curiosità · 5 minuti', desc: 'Voragine naturale di 45 m larghezza × 30 m profondità. Una caverna collassata millenni fa. Accesso libero.' },
+      { name: 'Għar Lapsi', lat: 35.827085, lon: 14.4235813, kind: 'Pomeriggio · ultimo bagno', desc: 'Insenatura rocciosa segreta dei maltesi. Scalette per scendere in acqua, sistema di grotte sottomarine per snorkelling.' }
+    ]
+  },
+  {
+    id: 8,
+    date: 'Mer 1 luglio',
+    color: 'var(--d8)',
+    colorHex: '#8a7e6a',
+    title: 'Partenza',
+    summary: 'Volo Ryanair di ritorno per Roma Fiumicino alle 12:30. Partire dalla guesthouse intorno alle 10:30 per la riconsegna dell\'auto in aeroporto.',
+    places: [
+      { name: 'Duncan Guesthouse', lat: 35.8415286, lon: 14.5452034, kind: 'Check-out · 10:30', desc: 'Partenza con margine per la riconsegna dell\'auto.', isBase: true },
+      { name: 'Aeroporto di Malta (MLA)', lat: 35.8517424, lon: 14.4863361, kind: 'Volo Ryanair · 12:30', desc: 'Volo Malta → Roma Fiumicino, arrivo previsto 14:05.', isAirport: true }
+    ]
+  }
+];
+
+/* ─── SVG ICONS (Lucide-style) ──────────────────────── */
+const ICONS = {
+  restaurant: '<svg viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h2c1.1 0 2-.9 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>',
+  cafe:       '<svg viewBox="0 0 24 24"><path d="M10 2v2"/><path d="M14 2v2"/><path d="M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1"/><path d="M6 2v2"/></svg>',
+  bar:        '<svg viewBox="0 0 24 24"><path d="M8 22h8"/><path d="M7 10h10"/><path d="M12 15v7"/><path d="M12 15a5 5 0 0 0 5-5V3H7v7a5 5 0 0 0 5 5Z"/></svg>',
+  gelato:     '<svg viewBox="0 0 24 24"><path d="m7 11 4.08 10.35a1 1 0 0 0 1.84 0L17 11"/><path d="M17 7A5 5 0 0 0 7 7"/><path d="M17 7a2 2 0 0 1 0 4H7a2 2 0 0 1 0-4"/></svg>',
+  shop:       '<svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>',
+  extra:      '<svg viewBox="0 0 24 24"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>'
+};
+
+const CATEGORY_LABELS = {
+  restaurant: 'Ristorante',
+  cafe:       'Bar / Pastizzi',
+  bar:        'Aperitivo / Wine bar',
+  gelato:     'Gelateria / Pasticceria',
+  shop:       'Bottega / Mercato',
+  extra:      'Luogo extra'
+};
+
+/* ─── EXTRA POIs PER DAY (ristoranti, bar, gelaterie, botteghe) ─── */
+const EXTRAS = {
+  1: [
+    { name: "Harbour Lights Café", lat: 35.8411875, lon: 14.5455625, category: 'bar',
+      kind: 'Aperitivo · 19:00–19:30',
+      desc: 'Lungomare con tavolini all\'aperto e vista diretta sui luzzu. Ordina una Kinnie fredda o una Cisk alla spina mentre il sole cala sull\'acqua.' },
+    { name: "Ta' Victor", lat: 35.8414044, lon: 14.5451018, category: 'restaurant',
+      kind: 'Ristorante · cena di pesce',
+      desc: 'Anima autentica del porto, il menu lo decide il proprietario in base al pescato del giorno. Aspettatevi aljotta, pesce intero alla griglia e piatti fuori carta.' },
+    { name: "Roots Restaurant", lat: 35.8404764, lon: 14.5445545, category: 'restaurant',
+      kind: 'Ristorante · cena',
+      desc: 'Accogliente, informale, apprezzato dalle famiglie italiane. Buona aljotta e polpo locale cucinato bene.' },
+    { name: "Sottozero – The Gelato Factory", lat: 35.8410470, lon: 14.5449229, category: 'gelato',
+      kind: 'Gelateria · dopo cena',
+      desc: 'Gelati artigianali e milkshake molto apprezzati dai ragazzi. Ottimi anche i caffè ghiacciati. Aperto fino a tardi nel weekend.' },
+    { name: "Liska Restaurant", lat: 35.8413100, lon: 14.5453800, category: 'restaurant',
+      kind: 'Ristorante · cena di pesce',
+      desc: 'Sul lungomare di Marsaxlokk, 4.7 stelle su Tripadvisor. Pesce freschissimo, polpo alla griglia, calamari, spigola. Ambiente vivace e animato. Ottima selezione di vini locali.' }
+  ],
+  2: [
+    { name: "Tulliera Farm Deli", lat: 35.825002, lon: 14.5600643, category: 'shop',
+      kind: 'Farm shop · facoltativo',
+      desc: 'Filosofia farm-to-fork: verdure fresche, uova, formaggi, olive in vasetto, chutney, miele. Caprette e galline girano libere. Aperto solo mercoledì e sabato.' },
+    { name: "Sea Coast Confectionary", lat: 35.8417805, lon: 14.5452027, category: 'cafe',
+      kind: 'Pasticceria · pranzo o dopo cena',
+      desc: 'Da provare il bezzun tal-krema, brioche farcito con crema e marmellata. La sera anche imqaret caldi (pasticcini ai datteri) — rustici e profumati.' },
+    { name: "iPlace Café", lat: 35.840828, lon: 14.5475076, category: 'bar',
+      kind: 'Aperitivo alternativo',
+      desc: 'Locale moderno e informale sul lungomare con vista panoramica sul porto. Più giovane e vivace dell\'Harbour Lights.' },
+    { name: "Tartarun Restaurant", lat: 35.841428, lon: 14.545364, category: 'restaurant',
+      kind: 'Ristorante raffinato · cena',
+      desc: 'Il livello più alto di Marsaxlokk. Pesce fresco dai pescatori del porto ogni giorno. Per una cena speciale durante il soggiorno. Prenotazione consigliata in estate.' },
+    { name: "Ir-Rizzu", lat: 35.8409294, lon: 14.5448574, category: 'restaurant',
+      kind: 'Ristorante · cena',
+      desc: 'Sul lungomare, affacciato sul porto. Ambiente semplice, prezzi onesti, cucina tradizionale maltese. Apprezzato per polpo alla maltese e all\'aglio.' }
+  ],
+  3: [
+    { name: "Caffè Cordina", lat: 35.8983500, lon: 14.5134500, category: 'cafe',
+      kind: 'Sosta storica · Republic Square',
+      desc: 'La caffetteria più antica di Malta, dal 1837. Tavolini all\'aperto in Piazza della Repubblica sotto la statua della Regina Vittoria. Interni con soffitti a volta affrescati. Da provare: pastizzi, honey ring al miele e datteri, gelati artigianali.' },
+    { name: "Ta' Nenu The Artisan Baker", lat: 35.899054, lon: 14.516344, category: 'cafe',
+      kind: 'Pranzo · forno restaurato',
+      desc: 'Un antico forno restaurato in centro a Valletta. La vera ftira maltese preparata al momento: pane croccante con olio, pomodoro, tonno, olive, capperi e ġbejniet.' },
+    { name: "Birgi", lat: 35.8882100, lon: 14.5213500, category: 'cafe',
+      kind: 'Pranzo/spuntino · Vittoriosa marina',
+      desc: 'Bar a conduzione familiare sul lungomare di Birgu. Famoso per la migliore ftira biz-żejt di tutta Malta: pane croccante con olio, tonno, olive, capperi, pomodoro. Tavolini all\'aperto con vista sulla marina. Gestito da Mario, Rita e staff.' },
+    { name: "Segreto Bar", lat: 35.8962000, lon: 14.5143000, category: 'bar',
+      kind: 'Cocktail bar · St. Lucy Street',
+      desc: 'Cocktail bar nascosto in una stradina scalinata del centro di Valletta. Il bartender Gianluca prepara cocktail su misura con personalità e sapienza. Si parla italiano. Uno dei migliori aperitivi di Valletta.' },
+    { name: "Café Jubilee", lat: 35.8965000, lon: 14.5143500, category: 'cafe',
+      kind: 'Pub-bistrot · 125 St Lucia Street',
+      desc: 'Pub-bistrot con atmosfera d\'altri tempi, musica jazz e blues. Ideale per un aperitivo informale o un pranzo leggero. Atmosfera decisamente meno turistica del solito. Anche sede a Gozo, in Piazza Indipendenza a Victoria.' },
+    { name: "Babel Bistro", lat: 35.8986500, lon: 14.5140200, category: 'bar',
+      kind: 'Sera · musica live ogni giorno 20-23',
+      desc: 'Il locale con la musica live più amato di Valletta, in Archbishop Street vicino al Palazzo del Gran Maestro. Nessuna sedia uguale all\'altra, tavolini tra vasi fioriti, jazz e cocktail ottimi. Atmosfera bohémien unica. Apre a mezzogiorno.' },
+    { name: "Cockney's Restaurant", lat: 35.9003200, lon: 14.5072800, category: 'restaurant',
+      kind: 'Cena · porto di Marsamxett',
+      desc: 'Ristorante a conduzione familiare sul porto di Marsamxett, con terrazza sull\'acqua e vista su Fort Manoel Island. Pesce fresco dai pescatori locali ogni giorno. Da provare: Maltese Platter, carpaccio di cernia, fish trio. Atmosfera tradizionale.' },
+    { name: "Trabuxu Wine Bar", lat: 35.8973562, lon: 14.5099508, category: 'bar',
+      kind: 'Wine bar · dopo cena',
+      desc: 'Strait Street, Valletta. Selezione curata di vini maltesi e internazionali, distillati e cocktail in atmosfera informale. Apre alle 19:00.' },
+    { name: "Sottovento", lat: 35.8883944, lon: 14.5203403, category: 'bar',
+      kind: 'Aperitivo · Vittoriosa Marina',
+      desc: 'Vista mozzafiato su Valletta dal porto. Happy hour 16:00–18:00 con offerta "prendi uno e ne arrivano due". Anche pizze e pasta di mare ottimi.' },
+    { name: "BeBirgu", lat: 35.8879907, lon: 14.5222209, category: 'restaurant',
+      kind: 'Cena · piazza Vittoriosa',
+      desc: 'Palazzo storico sulla piazza, giardinetto interno all\'ombra. Cucina maltese con cuochi italiani: tagliolino al nero di seppia, coniglio in umido, lampuki di stagione.' },
+    { name: "Tal-Petut Restaurant", lat: 35.8875706, lon: 14.5229368, category: 'restaurant',
+      kind: 'Cena unica · Birgu · solo menu degustazione',
+      desc: 'Nessun menu scritto: il cuoco Donald prepara un pasto a condivisione in base ai prodotti del giorno (alcuni dal suo orto). ~€45 a persona, tre portate abbondanti. Cucina maltese autentica farm-to-table. Parla italiano. Prenotazione indispensabile.' },
+    { name: "La Favorita", lat: 35.8599074, lon: 14.5631566, category: 'restaurant',
+      kind: 'Cena casalinga · Marsascala',
+      desc: 'Fuori dai circuiti turistici, frequentata quasi solo dai maltesi. Aljotta eccellente, polpo memorabile, imqaret appena sfornati. Come mangiare dalla nonna.' }
+  ],
+  4: [
+    { name: "Is-Serkin (Crystal Palace Bar)", lat: 35.8845006, lon: 14.4004853, category: 'cafe',
+      kind: 'Pastizzi · Rabat, aperto 24h',
+      desc: 'L\'istituzione suprema dei pastizzi maltesi. I residenti si fermano a ogni ora per pastizzi caldi (ricotta o piselli) e un tè nel bicchiere. Prezzo irrisorio, gusto autentico.' },
+    { name: "Fontanella Tea Garden", lat: 35.88715, lon: 14.40375, category: 'cafe',
+      kind: 'Sosta iconica · bastioni di Mdina',
+      desc: 'Terrazza sui bastioni di Mdina con vista panoramica su tutta l\'isola. Dal 1975. Famosa per la torta al cioccolato-arancio e alla nocciola. Aperto 10:00–00:00. Aspettate un tavolo sul lato esterno: ne vale la pena.' },
+    { name: "Mdina Glass", lat: 35.885079, lon: 14.403499, category: 'shop',
+      kind: 'Shop · vetro soffiato',
+      desc: 'Il produttore maltese di vetro più famoso. Subito dopo il Mdina Gate sulla destra. Portacandele, decorazioni, lampadari. Qualità nettamente superiore ai souvenir.' },
+    { name: "Phoenician Glassblowers", lat: 35.891833, lon: 14.417554, category: 'shop',
+      kind: 'Shop · Ta\' Qali, laboratorio',
+      desc: 'Maestri vetrai al lavoro con il soffio a bocca. Si osserva la creazione dal vetro fuso — uno spettacolo anche per un ragazzo di 14 anni.' },
+    { name: "Meridiana Wine Estate", lat: 35.9003, lon: 14.417956, category: 'bar',
+      kind: 'Cantina · Ta\' Qali',
+      desc: '19 ettari sull\'ex pista d\'atterraggio, fondata nel 1987. Chardonnay, Cabernet, Merlot e Syrah maltesi. Acquisto in cantina senza prenotazione.' },
+    { name: "Diar il-Bniet", lat: 35.8547, lon: 14.3863, category: 'restaurant',
+      kind: 'Pranzo/cena · Dingli · farm-to-table',
+      desc: 'Ristorante gourmet maltese a km zero nel villaggio di Dingli, a pochi minuti dalle scogliere. Menu stagionale con prodotti coltivati nei propri campi. Formaggi Ġbejniet artigianali, coniglio stufato, stufati di stagione, verdure biologiche. Farm shop per acquisti. Prenotazione consigliata: +356 2762 0727.' },
+    { name: "Bacchus Restaurant", lat: 35.8848756, lon: 14.4026282, category: 'restaurant',
+      kind: 'Cena elegante · Mdina',
+      desc: 'In due sale a volta costruite dai Cavalieri nel 1657-60. Coniglio ripieno, torta al cioccolato e peperoncino. Frank il capocameriere dal 1978 è memorabile. €25–30 a persona. Prenota.' },
+    { name: "The Medina Restaurant", lat: 35.8862371, lon: 14.4028353, category: 'restaurant',
+      kind: 'Cena · Mdina',
+      desc: 'Cucina ricercata con influenze arabe, presentazione e servizio ottimi. Atmosfera elegante non formale. Meno turistico di Bacchus.' },
+    { name: "The Cliffs Interpretation Centre", lat: 35.8538208, lon: 14.3796921, category: 'cafe',
+      kind: 'Caffè · Dingli Cliffs',
+      desc: 'Centro informativo con bar. Sosta per geologia e fauna delle scogliere e una pausa fresca prima del tramonto. Ingresso gratuito.' }
+  ],
+  5: [
+    { name: "Ta' Marija", lat: 35.9103192, lon: 14.4245339, category: 'restaurant',
+      kind: 'Cena con folklore · Mosta',
+      desc: 'A conduzione familiare da mezzo secolo. Buffet domenicale ~€25 incluso vino. Coniglio in tre versioni, ravjul, salsicce maltesi alla brace. Spettacolo di danza tradizionale mercoledì e venerdì sera.' },
+    { name: "The Lord Nelson", lat: 35.90876, lon: 14.42428, category: 'restaurant',
+      kind: 'Cena elegante · Mosta · dal 1996',
+      desc: 'Palazzo tipico maltese convertito in ristorante, a pochi passi dalla Rotunda. Cucina internazionale raffinata, servizio impeccabile. Il tavolo sul balcone maltese con vista sulla cupola illuminata è uno dei più romantici di Malta. Prenotazione consigliata.' }
+  ],
+  6: [
+    { name: "The Boathouse Restaurant", lat: 36.0284062, lon: 14.2138541, category: 'restaurant',
+      kind: 'Cena · lungomare Xlendi',
+      desc: 'Il ristorante di riferimento di Gozo. Pesce fresco esposto in vetrina, pasta fresca, Trio di Calamari e tagliata di tonno come piatti signature. Ambiente raffinato sul bordo dell\'acqua. Prenotazione obbligatoria: +356 2756 7207.' },
+    { name: "Tmun Restaurant", lat: 36.0252578, lon: 14.2962594, category: 'restaurant',
+      kind: 'Cena alternativa · porto Mġarr · citato Michelin',
+      desc: 'Ristorante familiare al porto di Mġarr, citato dalla Guida Michelin dal 2020. Chef Paul Buttigieg: cucina creativa con pesce fresco del giorno. Prawn tartare, fish soup, panko tempura monkfish. Terrazza soleggiata. Aperto lu/me/gi/ve/sa sera, do pranzo.' },
+    { name: "It-Tokk · prodotti gozitani", lat: 36.0446833, lon: 14.2389991, category: 'shop',
+      kind: 'Bottega · Piazza Indipendenza',
+      desc: 'Sciroppo di carrubo, marmellate di fichi d\'India, sale aromatizzato, liquori al fico d\'India (Bajtra). Prezzi migliori di Valletta. Sulla piazza del mercato di Victoria.' },
+    { name: "One80 Kitchen", lat: 36.0261899, lon: 14.2977474, category: 'restaurant',
+      kind: 'Caffè arrivo · Mġarr Marina',
+      desc: 'Affacciato sulla marina, ingredienti rigorosamente locali. Ottimo per un caffè o succo con vista appena sbarcati dal traghetto prima di partire per Victoria.' },
+    { name: "Xlendi Bay · passeggiata serale", lat: 36.0290, lon: 14.2132, category: 'extra',
+      kind: 'Dopo cena · lungomare',
+      desc: 'Passeggiata sul lungomare della baia dopo cena al Boathouse. Luci riflesse sull\'acqua, barche a vela ormeggiate, scogliere che chiudono la baia su entrambi i lati.' }
+  ],
+  7: [
+    { name: "Aalto Restaurant & Bar", lat: 35.819839, lon: 14.4524569, category: 'bar',
+      kind: 'Aperitivo · Wied iż-Żurrieq',
+      desc: 'Vista panoramica sul porto e sulla costa. Una Cisk o un Aperol guardando l\'isolotto di Filfla all\'orizzonte. Cucina anche di qualità (recensioni eccellenti).' },
+    { name: "Blue Cave Bar & Restaurant", lat: 35.8196500, lon: 14.4519000, category: 'bar',
+      kind: 'Aperitivo alternativo · Wied iż-Żurrieq',
+      desc: 'A pochi passi dal porticciolo, con tavolini vista mare e atmosfera informale. Ottimo per un aperitivo in alternativa all\'Aalto, adatto a tutta la famiglia.' },
+    { name: "Il Corsaro", lat: 35.8195953, lon: 14.4530982, category: 'restaurant',
+      kind: 'Cena · Wied iż-Żurrieq',
+      desc: 'Cattura l\'essenza mediterranea. Chef Simone, menu che cambia ogni giorno col pescato. Bruschetta con gamberi, carpaccio di polpo, pasta del giorno. Locale piccolo, prenotazione obbligatoria.' },
+    { name: "Coast at Cassarini", lat: 35.8197000, lon: 14.4522000, category: 'restaurant',
+      kind: 'Ristorante · alternativa economica · 3 livelli',
+      desc: 'Su 3 livelli con terrazza affacciata su Filfla. Cucina mediterranea e maltese, pesce fresco dai pescatori locali. Più accessibile de Il Corsaro nei prezzi. Prenotazione consigliata nel weekend.' },
+    { name: "Maryrose Confectionary", lat: 35.8412000, lon: 14.5449000, category: 'gelato',
+      kind: 'Pasticceria locale · Marsaxlokk · ultima sera',
+      desc: 'Pasticceria locale non turistica di Marsaxlokk. Kannoli con ricotta fresca, qassatat dolci, pastizzi tal-irkotta in versione dessert. Il posto che frequentano i marsaxlokkesi — non quello delle guide, quello con la fila dei locali la sera.' }
+  ]
+};
+
+/* ─── MAP SETUP ──────────────────────────────────────── */
+const map = L.map('map', {
+  zoomControl: true,
+  attributionControl: true,
+  scrollWheelZoom: true
+});
+
+// Pleasant cream-toned tile layer that fits the editorial aesthetic
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> · <a href="https://carto.com/attributions">CARTO</a>',
+  subdomains: 'abcd',
+  maxZoom: 19
+}).addTo(map);
+
+// Compute global bounds across all days (main tappe only, extras can sit anywhere)
+const allPoints = DAYS.flatMap(d => d.places.map(p => [p.lat, p.lon]));
+const globalBounds = L.latLngBounds(allPoints).pad(0.12);
+map.fitBounds(globalBounds);
+
+// Per-day layer groups split into MAIN (always shown unless dimming) and EXTRAS (shown only when day active).
+const dayLayers = {};       // main tappe + polyline
+const dayMarkers = {};      // for fly-to-and-popup from sidebar list
+
+// ── CATEGORY LAYERS (global, independent of day) ──────────────────────────
+// One Leaflet layerGroup per category, always on map unless user toggles off.
+const CATEGORIES = ['restaurant', 'cafe', 'bar', 'gelato', 'shop', 'extra'];
+const categoryLayers = {};   // category → LayerGroup
+const categoryActive = {};   // category → boolean
+
+CATEGORIES.forEach(cat => {
+  categoryLayers[cat] = L.layerGroup().addTo(map);
+  categoryActive[cat] = true;
+});
+
+DAYS.forEach(day => {
+  const mainGroup = L.layerGroup().addTo(map);
+  dayLayers[day.id] = mainGroup;
+  dayMarkers[day.id] = [];
+
+  // Polyline connecting main tappe in order
+  const coords = day.places.map(p => [p.lat, p.lon]);
+  if (coords.length >= 2) {
+    L.polyline(coords, {
+      color: day.colorHex,
+      weight: 3,
+      opacity: 0.65,
+      dashArray: '6, 8',
+      lineCap: 'round'
+    }).addTo(mainGroup);
+  }
+
+  // MAIN markers (numbered tappe, base ★, airport ✈)
+  day.places.forEach((place, idx) => {
+    const isBase = place.isBase;
+    const isAirport = place.isAirport;
+    const cls = isAirport ? 'is-airport' : (isBase ? 'is-base' : '');
+    const label = isAirport ? '✈' : (isBase ? '★' : String(idx + 1));
+
+    const html = `<div class="map-marker ${cls}" style="--day-color:${day.colorHex}">${isAirport ? '<span>'+label+'</span>' : label}</div>`;
+    const icon = L.divIcon({
+      html,
+      className: '',
+      iconSize: [28, 28],
+      iconAnchor: [14, 14]
+    });
+
+    const marker = L.marker([place.lat, place.lon], { icon }).addTo(mainGroup);
+    const popupHtml = `
+      <div class="popup-eyebrow" style="--day-color:${day.colorHex}">Giorno ${day.id} · ${day.date}</div>
+      <div class="popup-title">${place.name}</div>
+      <div class="popup-kind">${place.kind}</div>
+      <div class="popup-desc">${place.desc}</div>
+    `;
+    marker.bindPopup(popupHtml, { maxWidth: 280, autoPan: true });
+    dayMarkers[day.id].push({ marker, place });
+  });
+
+  // EXTRA markers → added to the global per-category layer (not per-day)
+  const extras = EXTRAS[day.id] || [];
+  extras.forEach(place => {
+    const cat = place.category || 'extra';
+    const iconSvg = ICONS[cat] || ICONS.extra;
+    const html = `<div class="map-marker secondary" style="--day-color:${day.colorHex}" aria-label="${place.name}">${iconSvg}</div>`;
+    const icon = L.divIcon({
+      html,
+      className: '',
+      iconSize: [24, 24],
+      iconAnchor: [12, 12]
+    });
+    const targetLayer = categoryLayers[cat] || categoryLayers['extra'];
+    const marker = L.marker([place.lat, place.lon], { icon }).addTo(targetLayer);
+    const popupHtml = `
+      <div class="popup-eyebrow" style="--day-color:${day.colorHex}">Giorno ${day.id} · ${CATEGORY_LABELS[cat] || 'Extra'}</div>
+      <div class="popup-title">${place.name}</div>
+      <div class="popup-kind">${place.kind}</div>
+      <div class="popup-desc">${place.desc}</div>
+    `;
+    marker.bindPopup(popupHtml, { maxWidth: 280, autoPan: true });
+  });
+});
+
+/* ─── SIDEBAR RENDERING ──────────────────────────────── */
+const listEl = document.getElementById('days-list');
+const pillsEl = document.getElementById('day-pills');
+const isMobile = () => window.matchMedia('(max-width: 880px)').matches;
+
+DAYS.forEach(day => {
+  // ── Day card (sidebar list, desktop primary)
+  const card = document.createElement('article');
+  card.className = 'day-card';
+  card.style.setProperty('--day-color', day.colorHex);
+  card.dataset.day = day.id;
+
+  card.innerHTML = `
+    <div class="day-head">
+      <span class="day-num">Giorno ${String(day.id).padStart(2,'0')}</span>
+      <span class="day-date">${day.date}</span>
+    </div>
+    <h2 class="day-title">${day.title}</h2>
+    <p class="day-summary">${day.summary}</p>
+    <ul class="day-places">
+      ${day.places.map((p, i) => `
+        <li class="day-place" data-day="${day.id}" data-idx="${i}">
+          <span class="day-place-num">${p.isAirport ? '✈' : (p.isBase ? '★' : i + 1)}</span>
+          <span class="day-place-text">
+            <span class="day-place-name">${p.name}</span>
+            <span class="day-place-kind">${p.kind}</span>
+          </span>
+        </li>
+      `).join('')}
+    </ul>
+    <button class="read-full-link" data-day-full="${day.id}" type="button">
+      Leggi l'itinerario completo
+      <svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+    </button>
+  `;
+  listEl.appendChild(card);
+
+  card.addEventListener('click', (e) => {
+    if (e.target.closest('.day-place')) return;
+    if (e.target.closest('.read-full-link')) return;
+    setActiveDay(day.id);
+  });
+
+  // ── Day pill (mobile primary nav, always-visible strip)
+  const pill = document.createElement('button');
+  pill.className = 'day-pill';
+  pill.style.setProperty('--pill-color', day.colorHex);
+  pill.dataset.day = day.id;
+  pill.setAttribute('aria-label', `Giorno ${day.id} · ${day.date} · ${day.title}`);
+  // Extract short date label (e.g. "24 giu", "1 lug")
+  const shortDate = day.date.replace(/^[A-Za-z]+ /, ''); // strip weekday
+  pill.innerHTML = `
+    <span class="day-pill-num">${day.id}</span>
+    <span class="day-pill-date">${shortDate}</span>
+  `;
+  pill.addEventListener('click', () => setActiveDay(day.id));
+  pillsEl.appendChild(pill);
+});
+
+// Place click → fly to + open popup
+listEl.addEventListener('click', (e) => {
+  const li = e.target.closest('.day-place');
+  if (!li) return;
+  const dayId = +li.dataset.day;
+  const idx = +li.dataset.idx;
+  const { marker, place } = dayMarkers[dayId][idx];
+  map.flyTo([place.lat, place.lon], 14, { duration: 0.9 });
+  setTimeout(() => marker.openPopup(), 700);
+});
+
+/* ─── DAY FILTER LOGIC ──────────────────────────────── */
+let activeDay = null;
+
+function setActiveDay(dayId) {
+  // On mobile, tapping the same day again does nothing (avoid empty state)
+  if (activeDay === dayId) {
+    if (isMobile()) return;
+    clearActive();
+    return;
+  }
+  activeDay = dayId;
+
+  // Cards
+  document.querySelectorAll('.day-card').forEach(c => {
+    c.classList.toggle('is-active', +c.dataset.day === dayId);
+  });
+  // Pills
+  document.querySelectorAll('.day-pill').forEach(p => {
+    p.classList.toggle('is-active', +p.dataset.day === dayId);
+  });
+
+  // Show only active day's MAIN layer; category extras are independent
+  Object.entries(dayLayers).forEach(([id, layer]) => {
+    if (+id === dayId) {
+      if (!map.hasLayer(layer)) layer.addTo(map);
+    } else {
+      if (map.hasLayer(layer)) map.removeLayer(layer);
+    }
+  });
+
+  // Zoom map to day bounds
+  const day = DAYS.find(d => d.id === dayId);
+  const bounds = L.latLngBounds(day.places.map(p => [p.lat, p.lon])).pad(0.25);
+  map.flyToBounds(bounds, { duration: 0.9, maxZoom: 13 });
+
+  // Scroll the active pill into the centre of the strip (horizontal)
+  const activePill = document.querySelector(`.day-pill[data-day="${dayId}"]`);
+  if (activePill && isMobile()) {
+    activePill.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+  }
+  // Scroll the active card into view (desktop), and reset day-scroll on mobile
+  const card = document.querySelector(`.day-card[data-day="${dayId}"]`);
+  if (card) {
+    if (isMobile()) {
+      listEl.scrollTop = 0;
+    } else {
+      card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }
+
+  document.getElementById('btn-all').classList.remove('active');
+}
+
+function clearActive() {
+  // On mobile, never clear — always keep one day active
+  if (isMobile()) {
+    if (activeDay == null) setActiveDay(1);
+    return;
+  }
+  activeDay = null;
+  document.querySelectorAll('.day-card').forEach(c => c.classList.remove('is-active'));
+  document.querySelectorAll('.day-pill').forEach(p => p.classList.remove('is-active'));
+  Object.values(dayLayers).forEach(layer => {
+    if (!map.hasLayer(layer)) layer.addTo(map);
+  });
+  map.flyToBounds(globalBounds, { duration: 0.9 });
+  document.getElementById('btn-all').classList.add('active');
+}
+
+document.getElementById('btn-all').addEventListener('click', clearActive);
+document.getElementById('btn-collapse').addEventListener('click', clearActive);
+
+/* ─── LEGEND CATEGORY TOGGLES ───────────────────────────────────────────── */
+document.querySelectorAll('.marker-legend-item.layer-toggle').forEach(item => {
+  item.addEventListener('click', () => {
+    const cat = item.dataset.layer;
+    const nowActive = !categoryActive[cat];
+    categoryActive[cat] = nowActive;
+
+    // Toggle layer on map
+    const layer = categoryLayers[cat];
+    if (layer) {
+      if (nowActive) {
+        if (!map.hasLayer(layer)) layer.addTo(map);
+      } else {
+        if (map.hasLayer(layer)) map.removeLayer(layer);
+      }
+    }
+
+    // Update visual state
+    item.classList.toggle('is-on', nowActive);
+    item.classList.toggle('is-off', !nowActive);
+    item.setAttribute('aria-pressed', nowActive ? 'true' : 'false');
+  });
+});
+
+/* ─── INITIAL STATE ─────────────────────────────────── */
+// On mobile, start with day 1 active so the pills strip and content are populated
+if (isMobile()) {
+  setActiveDay(1);
+}
+
+// Re-fit map when crossing the mobile breakpoint (rotation, resize)
+let wasMobile = isMobile();
+window.addEventListener('resize', () => {
+  const nowMobile = isMobile();
+  // Invalidate Leaflet size so it redraws correctly
+  setTimeout(() => map.invalidateSize(), 100);
+  if (nowMobile !== wasMobile) {
+    wasMobile = nowMobile;
+    if (nowMobile && activeDay == null) {
+      setActiveDay(1);
+    }
+  }
+});
+
+/* ─── MODAL: full-text itinerary per day ────────────── */
+const modalBackdrop = document.getElementById('day-modal');
+const modalContent  = document.getElementById('modal-content');
+const modalEyebrow  = document.getElementById('modal-eyebrow');
+const modalDayLabel = document.getElementById('modal-day-label');
+const modalCloseBtn = document.getElementById('modal-close');
+
+function openDayModal(dayId) {
+  const day = DAYS.find(d => d.id === dayId);
+  if (!day) return;
+  const tpl = document.getElementById(`day-${dayId}-full`);
+  if (!tpl) return;
+
+  modalContent.innerHTML = '';
+  modalContent.appendChild(tpl.content.cloneNode(true));
+  modalEyebrow.textContent = `Giorno ${dayId} · ${day.date}`;
+  modalDayLabel.textContent = day.title;
+  modalBackdrop.style.setProperty('--day-color', day.colorHex);
+
+  modalBackdrop.removeAttribute('hidden');
+  requestAnimationFrame(() => modalBackdrop.classList.add('is-open'));
+  document.body.style.overflow = 'hidden';
+  modalContent.scrollTop = 0;
+  modalCloseBtn.focus();
+}
+
+function closeDayModal() {
+  modalBackdrop.classList.remove('is-open');
+  setTimeout(() => {
+    modalBackdrop.setAttribute('hidden', '');
+    document.body.style.overflow = '';
+  }, 260);
+}
+
+modalCloseBtn.addEventListener('click', closeDayModal);
+modalBackdrop.addEventListener('click', (e) => {
+  if (e.target === modalBackdrop) closeDayModal();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && modalBackdrop.classList.contains('is-open')) {
+    closeDayModal();
+  }
+});
+
+// Wire up all "Leggi l'itinerario completo" buttons (event delegation)
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.read-full-link');
+  if (!btn) return;
+  e.stopPropagation();
+  const dayId = +btn.dataset.dayFull;
+  openDayModal(dayId);
+});
+
+</script>
+
+<!-- ─── FULL-DAY HTML TEMPLATES ─── -->
+<template id="day-1-full">
+<h2>Giorno Mercoledì 24 giugno – Arrivo e prima scoperta di Marsaxlokk</h2>
+<h3>Logistica di arrivo</h3>
+<p>Volo Ryanair con arrivo a Malta alle 16:10. Dopo lo sbarco, ritiro bagagli e poi il noleggio auto direttamente in aeroporto (i banconi dei principali operatori sono nel terminal arrivi). Trasferimento verso Marsaxlokk in circa 15–25 minuti (5–8 km): la strada è semplice ma ricordate che a Malta si guida a sinistra — uscendo dall'aeroporto e nelle prime rotatorie, prestate la massima attenzione soprattutto nei primissimi chilometri. Raggiungerete il Duncan Guesthouse nel cuore del paese, a pochi passi dal porto. Check-in, sistemazione in camera, una doccia veloce.</p>
+<p>⚠️ <strong>Nota pratica sul noleggio:</strong> molte compagnie richiedono una carta di credito tradizionale intestata al conducente per il deposito cauzionale. Le <strong>Visa Debit</strong> (debito con circuito Visa, come quelle bancarie italiane) sono spesso accettate, ma non sempre — dipende dall'operatore. Le <strong>PostePay standard</strong> (prepagate senza IBAN) sono quasi sempre rifiutate per il deposito. Il consiglio è verificare in anticipo con il vostro noleggiatore e, se possibile, avere con sé una classica carta di credito come alternativa. Per i pagamenti quotidiani (ristoranti, supermercati, negozi), le carte Visa e Mastercard — debito o credito — sono accettate ovunque a Malta; gli ATM più affidabili sono HSBC e Bank of Valletta (BoV). Tenete sempre qualche banconota in contanti per mercati, barche e chioschi.</p>
+<h3>Pomeriggio/sera – Marsaxlokk</h3>
+<p>È il primo pomeriggio, arriverete intorno alle 17:00–17:30 dopo check-in e sistemazione. Niente spiaggia oggi: nessuna caletta è raggiungibile a piedi entro pochi minuti dal centro — il lungomare è un porto di pescatori, non una spiaggia Il primo bagno lo farete il giorno dopo.</p>
+<p><strong>La passeggiata sul lungomare (Xatt is-Sajjieda)</strong></p>
+<p>Una schiera di antiche case di modesta altezza abbraccia il lungomare, mentre una pittoresca flotta di <em>luzzu</em> colorati beccheggia nel porto. Uomini con il volto segnato dalla vita in mare se ne stanno seduti sulle banchine a riparare le reti da pesca, mentre altri carteggiano, verniciano e segano per preparare le barche a prendere il mare. Questa è la scena che vi accoglierà: autentica, fotogenica, rilassante. Non è una cartolina costruita per i turisti — è la vita vera di un villaggio che conta ancora il 70% dell'intera flotta peschereccia maltese.</p>
+<p>I <em>luzzu</em> sono la prima cosa che cattura l'occhio: dipinti in giallo, rosso, blu e verde acceso, con la prua alta e l'occhio di Osiride (<em>għajn</em>) dipinto su entrambi i lati — un amuleto contro la sfortuna in mare, simbolo di Malta in tutto il mondo. Osservateli da vicino: ogni barca è diversa, ogni dettaglio è dipinto a mano dal proprietario.</p>
+<p>Il mercato sul lungomare è presente tutti i giorni, ma la versione più grande è la domenica. Il mercoledì troverete un mercato ridotto con bancarelle di prodotti alimentari, miele, liquori e souvenir: ottima prima occasione per curiosare senza fretta.</p>
+<p>📷 <strong>Consiglio fotografico:</strong> posizionatevi sul pontile sud del porto nel tardo pomeriggio. I <em>luzzu</em> colorati in primo piano, il villaggio sullo sfondo, i riflessi sull'acqua. La luce del pomeriggio di giugno è già calda e dorata alle 18:00. Tornate anche il mattino seguente all'alba: quella è la luce migliore di tutte, con il porto quasi deserto.</p>
+<p><strong>Piazza Dun Guzepp Caruana e la Chiesa di Nostra Signora di Pompei</strong></p>
+<p>A pochi passi dal lungomare si apre la piazza principale del paese, vivace e raccolta, con bar e tavolini all'aperto. La Chiesa di Nostra Signora di Pompei è stata costruita nel 1897 ed è un importante luogo di pellegrinaggio. La facciata è imponente, in stile barocco, e vede la statua della Madonna in cima fra le due torrette campanarie. L'interno è decorato in stile barocco, con un altare in marmo di Carrara e la pala centrale, replica del dipinto custodito nella Basilica di Pompei. Vale una breve visita: l'atmosfera è raccolta e silenziosa, un bel contrasto con il porto colorato e rumoroso di fuori.</p>
+<p>📷 <strong>Consiglio fotografico:</strong> fotografate la facciata della chiesa dalla piazzetta antistante — i due campanili simmetrici con gli orologi e la cupola rossastra sono una composizione classica e molto fotogenica, soprattutto con la luce del tardo pomeriggio che illumina la pietra arenaria locale. Dal sagrato della chiesa, girandosi verso il porto, si vede un bello scorcio dei <em>luzzu</em> incorniciati dai palazzi del lungomare.</p>
+<p><strong>Esplorazione del centro storico</strong></p>
+<p>A Marsaxlokk troverete una serie di antiche case con altezza moderata, in pietra locale color miele, con balconi in legno e porte colorate. Le stradine che si inerpicano dal lungomare verso il centro sono silenziose e autentiche, molto diverse dal turismo di massa di Valletta. Curiosate tra le botteghe: qualche negozietto di souvenir sul lungomare vende miele maltese, croccanti, liquori locali, miniature dei <em>luzzu</em> e altri prodotti tipici — primo assaggio dello shopping che farete in modo più approfondito domenica al mercato.</p>
+<p><strong>Torre (Forte) di San Luciano</strong></p>
+<p>Il Forte di San Luciano è un imponente edificio del XVII secolo, situato a soli 15 minuti a piedi dalla città. Fu originariamente costruito per proteggere la baia dai numerosi attacchi turchi. Oggi ospita il Centro di Ricerca sull'Acquacoltura. Il sabato mattina vengono organizzate visite guidate per piccoli gruppi. Dalla strada che conduce al forte, si gode un bel panorama sulla baia di Marsaxlokk con i <em>luzzu</em> all'orizzonte — un punto panoramico insolito e meno frequentato. Non entrate nei cortili (è un centro di ricerca attivo), ma la camminata fino alla punta del promontorio vale per la vista.</p>
+<p>🛍️ <strong>Acquisti del pomeriggio:</strong> lungo il lungomare e nelle piccole botteghe del centro troverete miele maltese (di carrubo o di timo selvatico — due gusti molto diversi, provate entrambi), croccanti di mandorle, <em>qagħaq tal-għasel</em> (biscotti ad anello ripieni di melassa e spezie), liquori artigianali locali e piccole miniature dei <em>luzzu</em> in legno. I prezzi in questi negozietti sono onesti e il prodotto più autentico rispetto ai negozi di souvenir delle zone turistiche. Non comprate tutto oggi — domenica al mercato ci sarà molto di più e a prezzi migliori.</p>
+<h3>Aperitivo sul porto</h3>
+<p>Verso le 19:00–19:30, prima di cena, fermatevi per un aperitivo in uno dei locali affacciati direttamente sul porto. Il posto ideale per questa prima sera è l'<strong>Harbour Lights Café</strong> (Xatt is-Sajjieda), sul lungomare, con tavolini all'aperto con vista diretta sui <em>luzzu</em>. L'atmosfera è rilassata e informale, perfetta per entrare nel ritmo isolano. Ordinate una <strong>Kinnie</strong> fredda — la bibita maltese a base di arance amare ed erbe aromatiche, icona dell'isola e ottimo digestivo analcolico — oppure una <strong>Cisk</strong> alla spina (la birra maltese leggera e dissetante, perfetta col caldo di giugno), o un aperitivo locale mentre guardate i <em>luzzu</em> oscillare sull'acqua e il sole inizia a calare.</p>
+<p>📷 <strong>Tramonto:</strong> la luce dorata sulle barche colorate è una delle immagini più belle di Malta. Arrivate al porto circa 30 minuti prima del tramonto (intorno alle 19:30–20:00 a fine giugno) per scegliere l'angolazione giusta. Il cielo tende al rosa-arancio sopra il villaggio — scattate verso ovest con le barche in primo piano.</p>
+<h3>Cena</h3>
+<p>I ristoranti del lungomare di Marsaxlokk sono molti — quasi tutti specializzati in pesce fresco. Ecco tre opzioni con carattere diverso:</p>
+<ul>
+  <li><strong>Ta' Victor</strong> — Mentre molti posti a Marsaxlokk strizzano l'occhio al turismo, Ta' Victor mantiene un'anima autentica. Il proprietario decide il menu in base al pescato del giorno: aspettatevi <em>aljotta</em> (la zuppa di pesce maltese con riso, pomodoro, aglio ed erbe, da non perdere assolutamente), pesce intero alla griglia e qualche piatto fuori carta. Semplice, genuino, con pochi fronzoli.</li>
+</ul>
+<ul>
+  <li><strong>Roots Restaurant</strong> — Accogliente e informale, molto apprezzato dalle famiglie italiane. Buona <em>aljotta</em> e polpo locale cucinato alla perfezione. Personale cordiale e disponibile.</li>
+</ul>
+<ul>
+  <li><strong>Liska Restaurant</strong> — Più vivace e animato, rinomato per la qualità delle materie prime. Ottimi il polpo alla griglia e la frittura di calamari. Buona selezione di vini locali.</li>
+</ul>
+<p><strong>Cosa ordinare:</strong> come primo approccio alla cucina maltese, puntate sull'<em>aljotta</em> (la zuppa di pesce è l'emblema del paese — leggera, profumata, con il riso che assorbe i sapori del mare), poi pesce del giorno intero alla griglia o polpo. Per iniziare, un paio di <em>pastizzi</em> caldi come antipasto informale: la versione ricotta è più delicata, quella ai piselli più saporita. Da bere: birra Cisk alla spina o un bianco locale fresco (Marsovin o Meridiana, i due produttori principali maltesi).</p>
+<h3>Dopo cena – Gelato e passeggiata serale</h3>
+<p>Per chiudere la serata, passeggiata sul lungomare con gelato in mano. A Marsaxlokk si trova la <strong>Sottozero – The Gelato Factory</strong>, che su Tripadvisor raccoglie recensioni positive per i gelati artigianali e i milkshake (particolarmente apprezzati dai ragazzi). Visitatori lodano i caffè ghiacciati e i milkshake, descritti come deliziosi — i gelati vengono anche usati come base per i frullati, il che li rende extra golosi. È un ottimo indirizzo per chiudere la prima sera in modo leggero e rinfrescante. In alternativa, molti dei ristorantini sul porto propongono dolci e gelati come conclusione del pasto.</p>
+<p>Passeggiata finale sul lungomare, qualche foto notturna ai <em>luzzu</em> con le luci del porto riflesse sull'acqua (usate la modalità notturna dello smartphone o appoggiate il telefono a un parapetto per scatti stabili), e poi a dormire — domani si inizia con il mare.</p>
+<p>📷 <strong>Consiglio fotografico:</strong> la luce serale è già ottima il primo giorno. Posizionatevi sul pontile sud del porto: i <em>luzzu</em> colorati in primo piano, il villaggio sullo sfondo, i riflessi sull'acqua. Tornate anche all'alba del giorno dopo: è la luce migliore di tutte.</p>
+<p>🛍️ <strong>Souvenir del giorno (da comprare nei negozietti del lungomare):</strong> miele maltese (carrubo o timo), croccanti di mandorle, miniature in legno o ceramica dei <em>luzzu</em>, liquori artigianali locali, piccoli oggetti con la croce di Malta.</p>
+</template>
+<template id="day-2-full">
+<h2>Giorno Giovedì 25 giugno – Mare: St. Peter's Pool e costa di Delimara</h2>
+<p>Giornata dedicata interamente al mare e alla costa selvaggia intorno a Marsaxlokk. La struttura è semplice: colazione, prima spiaggia al mattino, pranzo veloce, seconda caletta o deviazione curiosa nel pomeriggio, aperitivo e cena con calma la sera.</p>
+<h3>Mattina – Colazione e partenza per St. Peter's Pool</h3>
+<p>Colazione al Duncan Guesthouse o in uno dei bar sul lungomare. Prima di partire per la spiaggia, sosta obbligatoria per un <em>pastizz</em> caldo in un bar del porto. Sono piccoli scrigni di pasta sfoglia ripieni di ricotta o piselli, sfornati di continuo, venduti a pochi centesimi l'uno — si mangiano in piedi, appena usciti dal forno, con un caffè maltese ristretto o una <em>Kinnie</em> fredda. È la colazione giusta prima di una giornata di mare.</p>
+<p><strong>Tappa curiosa facoltativa — Tulliera Farm Deli:</strong> se avete qualche minuto prima di partire per le calette, a pochi minuti di auto dalla guesthouse si trova la <strong>Tulliera Farm</strong>, che punta sulla filosofia farm-to-fork e sull'agro-turismo sostenibile. La gente ci va principalmente per comprare verdure fresche, uova, formaggi e altri prodotti biologici, oltre a olive in vasetto, chutney e miele — perfetti da riportare in Italia.Hanno anche caprette e galline che girano libere, e si può contattarli in anticipo per chiedere una visita agli animali.Per un ragazzo di 14 anni è un posto insolito e simpatico, soprattutto se si è curiosi di capire da dove viene il cibo. Non è un posto da fare per forza, ma se capita, vale la sosta.</p>
+<p>🛍️ <strong>Acquisti alla Tulliera Farm (se ci passate):</strong> miele locale, olive in vasetto, chutney artigianali, formaggi freschi — tutto rigorosamente prodotto sul posto. È uno dei posti migliori per trovare prodotti genuini vicino a Marsaxlokk.</p>
+<h3>Mattina – St. Peter's Pool</h3>
+<p><strong>Come arrivare e parcheggio:</strong> da Marsaxlokk sono circa 3 km, 8–10 minuti in auto. Si percorre la Triq Delimara verso la penisola omonima in direzione del faro, seguendo i cartelli. Si può parcheggiare vicino all'ingresso sulla strada principale, oppure scendere lungo il breve sterrato fino a uno spiazzo più ampio direttamente sopra la caletta. Il parcheggio è gratuito, ma in estate arrivate entro le 9:00–9:30 per trovare posto comodamente.</p>
+<p><strong>Alternativa senza auto:</strong> sul lungomare di Marsaxlokk troverete banchetti che vendono escursioni verso St. Peter's Pool — ci sono barche che fanno spola ogni giorno dal molo di Marsaxlokk alla caletta. Se per qualsiasi motivo preferite evitare la guida quella mattina, è un'opzione valida e comoda.</p>
+<p><strong>Accesso alla caletta:</strong> la discesa agli scogli è breve (4–5 minuti) ma ripida — meglio scarpe con suola che semplici ciabatte. Le rocce intorno sono piatte e lisce, perfette per stendere il telo.</p>
+<p><strong>Cosa aspettarsi:</strong> St. Peter's Pool è una piscina naturale a forma di ferro di cavallo incastonata nelle rocce calcaree bianche. Le acque vanno dall'azzurro intenso al verde smeraldo. Il fondale è roccioso e ricco di pesci: portate maschera e pinne, lo snorkelling è eccellente. I tuffi dagli scogli più bassi sono uno dei momenti più apprezzati — per un ragazzo di 14 anni è il posto ideale.</p>
+<p><strong>Costo:</strong> ingresso completamente libero, nessun servizio fisso. In estate c'è solitamente un venditore di granite e gelati in cima alla salita — una piacevole sorpresa dopo la risalita sotto il sole. Portate tutto voi: acqua abbondante (almeno 1,5 litri a persona), crema solare alta, snack, telo. Non ci sono ombrelloni né sdraio a noleggio.</p>
+<p>⚠️ <strong>Nota pratica:</strong> i fondali diventano subito profondi allontanandosi dalla riva.</p>
+<p>📷 <strong>Consiglio fotografico:</strong> dall'alto dello scoglio che delimita la piscina a ferro di cavallo, scattate in verticale per catturare sia le rocce bianche in primo piano sia il verde-azzurro dell'acqua sotto. La luce migliore è quella del mattino, entro le 11:00, quando il sole basso esalta i riflessi. Evitate la luce piatta del mezzogiorno.</p>
+<h3>Caletta bonus – Il-Kalanka e l'Hofriet Window</h3>
+<p>A pochissimi minuti in auto da St. Peter's Pool (circa 2 km più avanti sulla stessa penisola), <strong>Il-Kalanka (Kalanka Bay)</strong> è ancora più appartata e silenziosa: acque turchesi, meno gente, qualche zona d'ombra naturale tra le rocce. Tra le due baie si trova l'<strong>Hofriet Window</strong> — un arco naturale scavato dal mare nella roccia, raggiungibile a piedi in pochi minuti. La vista sul Mediterraneo aperto è mozzafiato.</p>
+<p>📷 <strong>Consiglio fotografico:</strong> posizionatevi sotto l'arco dell'Hofriet Window e fotografate verso il mare aperto: la cornice naturale della roccia con il cielo azzurro è una delle immagini più riuscite dell'intera penisola. Provate sia in orizzontale (per la larghezza dell'arco) sia in verticale (per includere il cielo).</p>
+<h3>Pranzo – Veloce e locale</h3>
+<p>Per il pranzo puntate su qualcosa di rapido, economico e genuino. Tre opzioni concrete:</p>
+<p><strong>Opzione A — </strong><em><strong>Ħobż biż-żejt</strong></em><strong> (il panino maltese):</strong> il pranzo da spiaggia per eccellenza. È un panino a crosta croccante condito con olio d'oliva, pomodoro fresco, capperi, tonno o acciughe — semplice, saporito, pieno di gusto. Lo trovate in qualsiasi bar o panetteria lungo la strada del rientro verso Marsaxlokk, oppure in uno dei bar sul lungomare.</p>
+<p><strong>Opzione B — </strong><em><strong>Pastizzi</strong></em><strong> e </strong><em><strong>qassatat</strong></em><strong> al bar:</strong> un altro giro di <em>pastizzi</em> caldi non fa mai male, soprattutto dopo ore in acqua. I <em>qassatat</em> sono simili ma più grandi, con pasta più spessa e forma tonda — provate entrambi per confronto. Con una Cisk fredda è un pranzo completo per meno di 5 euro a persona.</p>
+<p><strong>Opzione C — Sea Coast Confectionary (lungomare di Marsaxlokk):</strong> se volete sedervi un momento all'ombra senza impegno, questa pasticceria-bar sul lungomare è un indirizzo piacevole. Il dolce da non perdere è il <em>bezzun tal-krema</em>, un brioche farcito con crema e marmellata — uno degli assaggi dolci più riusciti di Marsaxlokk. Si mangia in piedi o a un tavolino fuori, senza formalità.</p>
+<h3>Deviazione facoltativa – Għar Dalam (Grotta Oscura), Birzebbugħa</h3>
+<p>Se nel pomeriggio il sole è troppo forte per stare ancora sugli scogli, a 5–7 minuti in auto da Marsaxlokk (direzione Birzebbugħa) si trova la <strong>Grotta di Għar Dalam</strong>, uno dei siti preistorici più curiosi di Malta. La grotta è lunga 150 metri e custodisce resti di animali dell'Era Glaciale, tra cui scheletri praticamente intatti di ippopotami ed elefanti nani — specie endemiche dell'isola prima dell'arrivo dell'uomo. Il piccolo museo annesso racconta migliaia di anni di storia in modo accessibile.</p>
+<p>Aperta dal martedì alla domenica, 9:00–17:00. Parcheggio gratuito sul posto. Ingresso circa €5, include il museo. La visita dura 40–50 minuti ed è piacevolmente fresca — ottima sosta nelle ore più calde. Per un ragazzo di 14 anni, gli scheletri di animali estinti sono genuinamente curiosi e insoliti.</p>
+<h3>Pomeriggio – St. Thomas Bay (Marsascala) oppure relax</h3>
+<p><strong>Opzione A – St. Thomas Bay (Marsascala):</strong> circa 15–20 minuti da Marsaxlokk in auto, passando per Żejtun. Baia più ampia rispetto a St. Peter's Pool, con mix di sabbia e roccia, molto frequentata dai locali. Bar e chioschi nelle vicinanze, buona zona per snorkelling lungo i lati rocciosi. Sul molo è presente un piccolo centro di sport acquatici dove si possono noleggiare moto d'acqua — per un ragazzo di 14 anni, mezz'ora in acqua è un ricordo che vale. Parcheggio gratuito nelle strade vicine.</p>
+<p><strong>Opzione B – Relax a Marsaxlokk:</strong> pomeriggio in guesthouse, lettura all'ombra, gelato sul lungomare. Il giovedì il paese è tranquillo e si respira il ritmo autentico del villaggio. Dopo una mattinata intera al sole sugli scogli, il riposo è parte del viaggio.</p>
+<h3>Aperitivo sul porto</h3>
+<p>Verso le 19:00–19:30 aperitivo in uno dei locali affacciati direttamente sul porto. Il posto ideale è l'<strong>Harbour Lights Café</strong> (Xatt is-Sajjieda), con tavolini all'aperto e vista diretta sui <em>luzzu</em>. Ordinate una <strong>Kinnie</strong> fredda — la bibita maltese a base di arance amare ed erbe aromatiche, dolce-amara e rinfrescante — oppure una <strong>Cisk</strong> alla spina mentre il sole scende sull'acqua.</p>
+<p>In alternativa, <strong>iPlace Café</strong> è un locale moderno e informale sul lungomare, con vista panoramica sul porto, buone recensioni per gli aperitivi e l'atmosfera rilassata. Più giovane e vivace rispetto all'Harbour Lights.</p>
+<p>📷 <strong>Tramonto:</strong> la luce dorata sui <em>luzzu</em> a fine giugno è già calda e scenografica intorno alle 19:30–20:00. Posizionatevi sul pontile sud del porto con le barche in primo piano: il cielo tende al rosa-arancio sopra i tetti del villaggio.</p>
+<h3>Cena</h3>
+<p>Questa sera è il momento di sedersi con calma — dopo una giornata di mare si ha fame autentica. Se ieri sera avete già scelto uno dei ristoranti proposti nel Giorno 1 (Ta' Victor, Roots, Liska), questa è l'occasione per provare qualcosa di diverso sul lungomare.</p>
+<p>Due alternative da considerare:</p>
+<ul>
+  <li><strong>Tartarun</strong> — Il livello più alto di Marsaxlokk, cucina di mare raffinata con ingredienti rigorosamente locali. Il pesce fresco arriva ogni giorno direttamente dai pescatori del porto. Se volete concedervi una cena speciale una volta durante il soggiorno, questo è il posto giusto. Consigliata la prenotazione in anticipo, specialmente in estate.</li>
+</ul>
+<ul>
+  <li><strong>Ir-Rizzu</strong> — Sul lungomare, direttamente affacciato sul porto, è un'alternativa più informale ma con ottime recensioni per il pesce fresco. Ambiente semplice, prezzi onesti, cucina tradizionale maltese senza fronzoli. Particolarmente apprezzato per il polpo alla maltese e all'aglio.</li>
+</ul>
+<p><strong>Cosa ordinare in entrambi:</strong> <em>aljotta</em> come primo se non l'avete ancora provata (la zuppa di pesce maltese con riso, aglio, pomodoro ed erbe — è il piatto simbolo di Marsaxlokk, da non rimandare oltre), poi polpo grigliato o spigola alla griglia. Da bere: vino bianco maltese fresco (Marsovin o Meridiana) o una Cisk alla spina.</p>
+<h3>Dopo cena – Passeggiata e qualcosa di dolce</h3>
+<p>Per chiudere la serata in modo diverso rispetto alla sera precedente, due alternative al gelato:</p>
+<ul>
+  <li><strong>Sea Coast Confectionary</strong> (se non ci siete già passati a pranzo): la pasticceria sul lungomare rimane aperta la sera e propone dolci tradizionali maltesi — oltre al <em>bezzun tal-krema</em>, chiedete gli <em>imqaret</em>, pasticcini fritti ripieni di datteri e spezie, tipicamente venduti caldi. Sono rustici, profumati e difficili da trovare buoni fuori da Malta.</li>
+</ul>
+<ul>
+  <li><strong>Passeggiata con qualcosa dal forno:</strong> in alternativa, molti bar del lungomare tengono aperti fino a tardi e vendono dolcetti sfusi da portare via. Comprate qualcosa, sedetevi su una panchina colorata del porto e godetevi il silenzio del villaggio di sera — i <em>luzzu</em> che oscillano piano, le luci riflesse sull'acqua, il rumore lontano del mare.</li>
+</ul>
+<p>📷 <strong>Consiglio fotografico notturno:</strong> appoggiate il telefono al corrimano del lungomare per scatti stabili in modalità notte. I <em>luzzu</em> illuminati con i riflessi colorati sull'acqua calma sono una delle scene più belle da fotografare di sera. Cercate l'angolazione da est verso ovest, con i lampioni del porto che creano aloni dorati sull'acqua.</p>
+<p>🛍️ <strong>Riepilogo acquisti del giorno:</strong> per Kinnie, birra Cisk, conserve e olio, i supermercati locali vicino a Marsaxlokk sono la soluzione più pratica — chiedete alla guesthouse il più vicino. I marchi da cercare sono <strong>San Elmo</strong> per le conserve di pomodoro e i capperi, <strong>Marsovin</strong> o <strong>Meridiana</strong> per il vino in bottiglia. I grandi acquisti di prodotti tipici arriveranno domenica al mercato — per ora limitatevi a quello che serve per la guesthouse o per la borsa spiaggia.</p>
+</template>
+<template id="day-3-full">
+<h2>Giorno Venerdì 26 giugno – Valletta e Tre Città</h2>
+<p>La capitale maltese merita un'intera giornata. Valletta è la capitale europea più piccola per superficie, dichiarata Patrimonio UNESCO, e racchiude una concentrazione straordinaria di arte, architettura barocca e storia dei Cavalieri di Malta. Non è una città da correre: meglio scegliere pochi luoghi e viverli bene.</p>
+<h3>Logistica e distanze</h3>
+<p>Da Marsaxlokk a Valletta sono circa 20–25 km, 30–40 minuti in auto (percorso consigliato: SS1 via Paola e Marsa). Il venerdì mattina il traffico verso la capitale può essere sostenuto: partite non oltre le 8:30–9:00.</p>
+<p><strong>Parcheggio:</strong> Valletta è una ZTL con accesso regolamentato. L'opzione più pratica è il <strong>parcheggio MCP Floriana</strong> (Malta Car Parks, vicino al Phoenicia Hotel, appena fuori da City Gate), con i primi 30 minuti gratuiti, poi circa €0,82 l'ora, massimo €6,52 al giorno. Dal parcheggio, City Gate si raggiunge a piedi in 5–10 minuti. In alternativa, ci sono parcheggi gratuiti a Floriana all'ingresso della città, con un minibus rosso gratuito che porta al centro. Portate qualche banconota: gli attendant dei parcheggi di strada chiedono solitamente €1 di mancia (non obbligatoria).</p>
+<p>⚠️ <strong>Importante:</strong> non tentate di entrare in auto nel centro storico di Valletta — è pedonale per quasi tutta la sua estensione, le strade sono strettissime e il sistema di telecamere CVA registra le targhe per il pagamento automatico.</p>
+<h3>Mattina – La Co-Cattedrale di San Giovanni</h3>
+<p>Dopo aver parcheggiato, entrate in città da <strong>City Gate</strong> (il portale monumentale progettato da Renzo Piano, inaugurato nel 2014) e percorrete <strong>Triq ir-Repubblika</strong> (Republic Street), il grande asse pedonale che taglia la città da una parte all'altra. A pochi minuti a piedi sulla destra, si trova la <strong>Co-Cattedrale di San Giovanni</strong>.</p>
+<p><strong>Prenotazione e biglietti:</strong> il biglietto d'ingresso è di circa €15 per adulti, €12 per studenti e over 60; i bambini sotto i 12 anni entrano gratuitamente se accompagnati da un adulto. La prenotazione online sul sito ufficiale <strong>stjohnscocathedral.com</strong> è consigliata in estate per saltare la coda, che in alta stagione può arrivare a 20–30 minuti. La cattedrale è aperta dal lunedì al sabato 09:00–16:45 (ultimo ingresso 16:15); la domenica è chiusa ai turisti.</p>
+<p>⚠️ <strong>Dress code:</strong> è un luogo di culto. Spalle e gambe coperte fino al ginocchio per tutti. Vietati i tacchi a spillo; all'ingresso sono disponibili pattine da indossare. Una sciarpa leggera in zaino risolve tutto senza problemi.</p>
+<p><strong>Cosa non perdere all'interno:</strong> la cattedrale è un capolavoro del barocco maltese che dall'esterno — austero come una fortezza — non lascia immaginare minimamente quello che si trova dentro. All'interno custodisce due capolavori di Caravaggio: la <em>Decollazione di San Giovanni Battista</em> (l'opera più grande mai realizzata dal pittore, l'unica da lui firmata — il nome è scarabocchiato nel sangue che sgorga dal collo del santo) e il <em>San Girolamo scrivente</em>. La navata centrale ha il pavimento completamente lastricato di lapidi in marmo policromo che coprono le tombe di oltre 400 Cavalieri. Il soffitto è interamente affrescato da Mattia Preti con scene della vita di San Giovanni. L'audioguida (inclusa nel prezzo) ha 24 fermate ed è disponibile in italiano — seguitela con calma.</p>
+<p>📷 <strong>Consigli fotografici:</strong> all'interno non è permesso il flash. Scattate con ISO alto per catturare la penombra dorata della navata. L'<strong>Oratorio</strong> dove si trovano i Caravaggio è la sala più buia e suggestiva: avvicinatevi quanto il personale vi permette alla <em>Decollazione</em> per cogliere la firma nel sangue — un dettaglio che si dimentica raramente. Fuori, i <strong>balconi in legno colorato</strong> (<em>gallarija</em>) di Triq ir-Repubblika e delle vie laterali sono tra le immagini più iconiche di Valletta: cercate gli scorci dove si sovrappongono su più livelli, preferibilmente con una facciata in pietra dorata come sfondo.</p>
+<p>🛍️ <strong>Shopping a Valletta:</strong> subito dopo la visita, esplorate le botteghe lungo Triq ir-Repubblika e nelle vie laterali. Cercate: ceramiche dipinte a mano con motivi marini e <em>luzzu</em>, vetro soffiato colorato (le botteghe artigiane di Valletta hanno i pezzi più belli dell'isola), merletti maltesi (il pizzo tradizionale, patrimonio immateriale), miniature in argento o legno con la croce di Malta. Evitate i souvenir plastificati dei banchetti vicino a City Gate — quelli nei negozietti del centro storico hanno qualità ben superiore.</p>
+<h3>Passeggiata per Valletta: il giro dei punti panoramici</h3>
+<p>Dopo la cattedrale, dedicatevi alla passeggiata. Valletta è minuscola — da City Gate a Fort Sant'Elmo all'altra estremità ci vogliono 20 minuti a piedi — ma ogni angolo merita attenzione.</p>
+<p><strong>Piazza San Giorgio e il Palazzo del Gran Maestro:</strong> il cuore civile della città, con la facciata imponente del palazzo che fu sede dei Gran Maestri dell'Ordine e oggi è residenza ufficiale del Presidente. L'esterno è visitabile liberamente; l'interno con le sale di rappresentanza ha ingressi a pagamento in alcuni orari, ma per una visita rapida basta la piazza.</p>
+<p><strong>Upper Barrakka Gardens:</strong> i giardini pensili sul bastione meridionale — uno dei panorami più fotografati di Malta. Dall'alto si vede il Grand Harbour sotto, con i tre ingressi al porto e le Tre Città di fronte: Vittoriosa, Senglea e Cospicua, con le loro cupole e i campanili barocchi che si specchiano sull'acqua. Il <strong>saluto del cannone</strong> (<em>Saluting Battery</em>) avviene alle 12:00 e alle 16:00 — spettacoletto breve ma scenografico, soprattutto per un ragazzo di 14 anni. L'ingresso ai Giardini è libero. Dal bastione si vede anche il pontone dell'imbarco del traghetto per le Tre Città, in basso.</p>
+<p>📷 <strong>Consiglio fotografico:</strong> posizionatevi alle 11:55 già ai cannoni per il colpo delle 12:00 (la fila per i posti migliori si forma rapidamente). Poi spostatevi sulla balaustra destra dei giardini: la prospettiva con i cannoni in primo piano e il Grand Harbour sullo sfondo è la classica cartolina di Malta, ma se vi mettete in ginocchio o al livello dei cannoni il risultato è molto più drammatico. Con luce radente del mattino la pietra calcarea del bastione diventa oro vivo.</p>
+<h3>Sosta obbligatoria — Caffè Cordina</h3>
+<p>Prima o dopo il saluto del cannone, fate una sosta al <strong>Caffè Cordina</strong> (244 Republic Street), a meno di 5 minuti a piedi dai Barrakka Gardens. È la caffetteria più antica di Malta, fondata nel 1837 e oggi gestita dalla stessa famiglia Cordina alla terza generazione. I tavolini all'aperto si trovano direttamente in Piazza della Repubblica, sotto lo sguardo della statua della Regina Vittoria — uno dei migliori posti di tutta Valletta per fermarsi, osservare la gente che passa e respirare il ritmo della capitale. Gli interni sono altrettanto notevoli: soffitti a volta affrescati in un palazzo storico, arredi eleganti che non cambiano da decenni. Da ordinare: i <em>pastizzi</em> caldi alla ricotta, gli <em>honey ring</em> (ciambelline al miele e datteri, dolce tipico maltese), un caffè maltese o un gelato artigianale. Orari: lunedì–sabato 07:30–21:00, domenica 07:30–15:00.</p>
+<p>📷 <strong>Consiglio fotografico:</strong> dalla piazzetta del Caffè Cordina inquadrate la facciata del palazzo alle spalle con le finestre ad arco e i tavolini in primo piano — è una delle scene più "Valletta" che esista. La statua della Regina Vittoria sullo sfondo è il dettaglio che chiude la composizione.</p>
+<p><strong>Pranzo a Valletta:</strong> il centro ha molte opzioni. Da provare: <em>ftira</em> maltese (pane farcito con tonno, olive, capperi, pomodoro e formaggio gbejniet), <em>bragioli</em> (involtini di carne alla maltese), o un pranzo leggero. Per una pausa rapida senza sedersi a un ristorante:</p>
+<ul>
+  <li><strong>Ta' Nenu The Artisan Baker</strong> (Triq Nofsinhar / South Street): situato in un antico forno restaurato, è il posto migliore per provare la vera <em>ftira</em> maltese preparata al momento — pane croccante condito con olio, pomodoro fresco, tonno, olive, capperi e formaggio <em>ġbejniet</em>. Prezzi bassi, atmosfera casalinga.</li>
+  <li><strong>Birgi</strong> (lungomare di Vittoriosa — ideale se siete già alle Tre Città nel pomeriggio): bar a conduzione familiare gestito da Mario, Rita e staff, con tavolini all'aperto direttamente affacciati sulla marina di Birgu. Citato da molti come il posto della <strong>migliore <em>ftira biz-żejt</em> di tutta Malta</strong> — il pane maltese croccante condito con olio d'oliva, tonno, olive nere, capperi e pomodoro fresco, da mangiare in mano seduti fuori con la vista sui panfili ormeggiati. Perfetto come spuntino veloce tra la visita al Forte Sant'Angelo e la passeggiata a Senglea. Prezzo irrisorio, servizio veloce e cordiale.</li>
+  <li><strong>Caffè Cordina</strong> (se non ci siete già passati): ottimo anche per un pranzo leggero — insalate, panini maltesi, piatti del giorno con cucina mediterranea in uno dei locali più belli della capitale.</li>
+  <li><strong>Pastizzi e Kinnie</strong> in uno qualsiasi dei bar della città vecchia: sempre validi, economici, rapidi.</li>
+</ul>
+<h3>Pomeriggio – Tre Città: Vittoriosa, Senglea (e Cospicua)</h3>
+<p>Le Tre Città — Vittoriosa, Senglea e Cospicua — sono tre borghi storici affacciati sul Grand Harbour, raggiungibili da Valletta con il tradizionale <strong>dghajsa</strong> (barca-taxi, simile a una gondola), una piccola avventura in sé. Vittoriosa è la più interessante: il Forte Sant'Angelo, le strade strette medievali, la chiesa dell'Annunziata. Senglea offre il famoso <strong>Gardjola</strong> (torretta di guardia) con la vista a 360° sul porto, una delle più belle di Malta.</p>
+<p>Le Tre Città sono affacciate sul lato opposto del Grand Harbour rispetto a Valletta: tre borghi storici — <strong>Vittoriosa (Birgu)</strong>, <strong>Senglea (L-Isla)</strong> e <strong>Cospicua (Bormla)</strong> — dove i Cavalieri di San Giovanni si insediarono prima ancora di costruire Valletta. Molto meno turistiche della capitale, autentiche, ricche di storia.</p>
+<p><strong>Come raggiungerle — le opzioni:</strong></p>
+<p><strong>Opzione A – Traghetto (raccomandata, la più pratica):</strong> il traghetto parte dal molo situato al livello inferiore degli Upper Barrakka Gardens (raggiungibile con un ascensore dai giardini stessi). Il biglietto singolo costa €1,50 per adulto e €0,50 per bambini. La traversata dura circa 10 minuti. In estate (giugno–ottobre) il servizio è potenziato con corse notturne fino alle 23:00. Il ritorno a Valletta con lo stesso traghetto è comodissimo, a/r €3 per adulto. È senz'altro la soluzione più logica da Valletta: si risparmia il parcheggio alle Tre Città, si vive la traversata del porto, e si arriva direttamente al centro di Cospicua.</p>
+<p><strong>Opzione B – Dghajsa (esperienza autentica):</strong> le tradizionali barchette maltesi a remi e motore, condotte dai <em>barklori</em>, possono ospitare fino a 6 passeggeri. Il <em>crossing tour</em> (Valletta–Tre Città o viceversa) dura circa 15 minuti e costa intorno a €35 per barca (non a persona); il <em>round tour</em> del Grand Harbour dura 30 minuti e costa circa €60 per barca (circa €10 a passeggero). Le <em>dghajjes</em> si trovano ai moli sotto i Barrakka Gardens lato Valletta, oppure direttamente ai moli di Vittoriosa. È un'esperienza bellissima e fotogenica, con la barchetta colorata che attraversa il porto più profondo del Mediterraneo con Valletta sullo sfondo — il biglietto da un'altra recensione lo indica intorno a €3 a persona per il solo attraversamento, quindi i prezzi possono variare: contrattate sul posto con il barcaiolo.</p>
+<p><strong>Opzione C – Auto propria:</strong> dall'area del parcheggio MCP a Vittoriosa sono circa 5 km, 10–15 minuti. Parcheggio a Vittoriosa disponibile nelle strade intorno alla marina (gratuito, ma limitato in estate). Meno consigliata rispetto al traghetto per questioni di traffico e atmosfera.</p>
+<p><strong>Cosa vedere alle Tre Città:</strong></p>
+<p><strong>Vittoriosa (Birgu)</strong> è la più ricca di storia e la più visitata delle tre. La marina è piena di yacht di lusso attraccati — un contrasto straniante con la pietra medievale dei palazzi circostanti. Passeggiate lungo il lungomare e nei vicoli interni, dove le case sono basse, i balconi lignei sono ovunque e la pietra è la stessa color miele di Valletta ma ancora più consumata dal tempo.</p>
+<p>Il <strong>Forte Sant'Angelo</strong>, all'estremità della penisola di Vittoriosa, è la fortezza medievale che fu il cuore della resistenza durante il Grande Assedio del 1565. Aperto tutti i giorni dalle 09:00 alle 17:00, biglietto standard (comprensivo del tour dell'Upper Fort) €13, ridotto per studenti e ragazzi dai 12 ai 17 anni €8. Dall'alto delle mura si ha una delle viste migliori sull'intero Grand Harbour. Se alle 12:00 o alle 16:00 siete qui, vedrete il colpo di cannone della Saluting Battery di fronte, a Valletta — uno spettacolo da due prospettive diverse.</p>
+<p>Il <strong>Palazzo dell'Inquisitore</strong> (<em>Inquisitor's Palace</em>): unico palazzo dell'Inquisizione sopravvissuto quasi intatto nel mondo mediterraneo, con le celle dei prigionieri ancora visitabili. Ingresso circa €5 adulti.</p>
+<p><strong>Senglea</strong> merita una deviazione: camminate fino alla punta estrema della penisola dove si trovano i <strong>Giardini Gardjola</strong> — una piccola torretta di avvistamento da cui si gode una vista a 360° su tutto il porto, con Valletta da un lato, Vittoriosa dall'altro e il mare aperto sul terzo lato. Arrivati al porto di Cospicua in traghetto, si consiglia di iniziare il tour partendo da Senglea (L-Isla) e percorrendola per intero fino alla punta dove si trovano i giardini Gardjola. La vista da lì è forse la migliore dell'intera visita.</p>
+<p>📷 <strong>Consigli fotografici:</strong> dalla punta di Senglea ai Gardjola Gardens scattate verso Valletta: i bastioni illuminati dal sole pomeridiano, le cupole delle chiese, il profilo della capitale riflesso sull'acqua. È una delle fotografie più belle di Malta. A Vittoriosa, fotografate i vicoli stretti al riparo dal sole e gli yacht alla marina con il Forte sullo sfondo — il contrasto tra il contemporaneo e il medievale è fortissimo e molto fotogenico.</p>
+<p>🛍️ <strong>Acquisti alle Tre Città:</strong> il Birgu Market si tiene la domenica (non oggi, venerdì), quindi i negozi da considerare sono le piccole botteghe artigiane vicino alla piazza principale di Vittoriosa. Cercate vetro soffiato artigianale, piccole ceramiche, oggetti con la croce di Malta. I prezzi alle Tre Città sono generalmente più bassi rispetto a Valletta.</p>
+<h3>Aperitivo — a Valletta o già alle Tre Città</h3>
+<p>Se avete terminato il giro delle Tre Città verso le 17:00–17:30, avete due opzioni per l'aperitivo:</p>
+<ul>
+  <li><strong>Alle Tre Città — Sottovento, Vittoriosa Marina:</strong> locale affacciato direttamente sul porto con vista su Valletta, terrazze all'aperto. L'happy hour va dalle 16:00 alle 18:00 con l'offerta "prendi uno e ne arrivano due" — perfetto per un aperitivo rilassato prima di rientrare o di spostarsi per cena. Vista mozzafiato.</li>
+  <li><strong>A Valletta — Babel Bistro (Archbishop Street):</strong> il locale con la musica live più amato di Valletta, a pochi passi dal Palazzo del Gran Maestro. Nessuna sedia uguale all'altra, tavolini sul vicolo tra vasi di fiori colorati con luci calde, jazz dal vivo ogni giorno dalle 20:00 alle 23:00. Cocktail curati, Spritz, birre artigianali a prezzi accessibili. L'atmosfera bohémien e antituristica è quello che lo rende diverso da tutto il resto. Se volete finire la serata a Valletta invece di rientrare, questo è il posto — arrivate prima delle 20:00 per assicurarvi un tavolo fuori.</li>
+  <li><strong>A Valletta — Trabuxu Wine Bar (South Street):</strong> wine bar con selezione curata di vini maltesi e internazionali, distillati e cocktail in atmosfera informale. Apre alle 19:00 — ideale per un post-cena o una serata dedicata solo all'assaggio dei vini locali.</li>
+</ul>
+<h3>Cena — dove mangiare questa sera</h3>
+<p>Questa sera avete una scelta interessante: cenare a Vittoriosa, approfittando della posizione alle Tre Città, oppure restare a Valletta, oppure rientrare verso Marsaxlokk.</p>
+<p><strong>Opzione A — BeBirgu (Vittoriosa, altamente consigliata):</strong> ristorante in un palazzo storico affacciato sulla piazza principale di Vittoriosa, con un giardinetto interno all'ombra. Cucina maltese tipica con cuochi italiani: tagliolino al nero di seppia, coniglio in umido, pesce del giorno. Recensioni molto positive, con una nota specifica sul <em>lampuki</em> (il pesce tipico maltese di stagione) come piatto da non perdere. Da chiedere del cameriere Mattia, descritto come particolarmente disponibile nella scelta dei piatti e dei vini locali.</p>
+<p><strong>Opzione B — Tal-Petut Restaurant (Birgu):</strong> un'esperienza unica nel suo genere. Nessun menu scritto: il cuoco Donald prepara ogni sera un pasto a condivisione in base ai prodotti del giorno — verdure, carni e pesce provengono in parte direttamente dal suo orto. Il prezzo fisso è circa €45 a persona, per tre portate abbondanti da condividere al tavolo. La cucina è autenticamente maltese farm-to-table, senza cedimenti al gusto turistico. Donald parla bene italiano ed è appassionatissimo — spiega ogni piatto con genuino entusiasmo. Tra i piatti più citati: il tonno stagionato, il dip di fave e pane, il gallo e maiale con clementine. <strong>Prenotazione indispensabile</strong>: il locale è piccolo e sempre esaurito.</p>
+<p><strong>Opzione C — Cockney's Restaurant (Valletta, porto di Marsamxett):</strong> se preferite restare a Valletta invece di spostarvi alle Tre Città, Cockney's è una delle migliori alternative. Si trova direttamente sul porto di Marsamxett, con terrazza sull'acqua e vista su Fort Manoel Island — una delle posizioni più scenografiche di tutta Valletta per cenare in estate. Ristorante a conduzione familiare, specializzato in pesce fresco acquistato ogni giorno dai pescatori locali. Da ordinare: il Maltese Platter come antipasto (una selezione di piatti tipici locali perfetti per una famiglia curiosa), il carpaccio di cernia, il fish trio. Le recensioni più recenti segnalano in particolare la freschezza del pesce e la cordialità del servizio. Ambiente tradizionale, non turistico, con prezzi onesti.</p>
+<p><strong>Opzione D — Rientro verso Marsaxlokk con tappa a Marsascala:</strong> se preferite rientrare prima, fermatevi a <strong>Marsascala</strong> (a circa 10 minuti da Marsaxlokk). La <strong>La Favorita</strong> è un posto fuori dai circuiti turistici, frequentata quasi solo dai maltesi — cucina maltese casalinga, porzioni abbondanti, prezzi onesti. Come mangiare dalla nonna.</p>
+<p><strong>Cosa ordinare questa sera:</strong> se siete a Vittoriosa, è la serata giusta per il <strong>coniglio alla maltese</strong> (<em>fenek moqli</em>) — il piatto nazionale, brasato con vino bianco, aglio, alloro ed erbe. Da bere: vino maltese Chardonnay <strong>Delicata</strong> o una Cisk alla spina.</p>
+<h3>Sera – Rientro a Marsaxlokk (o serata a Valletta)</h3>
+<p>Se siete rimasti a Vittoriosa per cena, la serata si chiude con una passeggiata notturna sulla marina, con le luci di Valletta riflesse sul porto dall'altra parte — uno spettacolo silenzioso e bellissimo. Il traghetto notturno per Valletta è attivo fino alle 23:00 in estate, quindi avete tutto il tempo.</p>
+<p><strong>Se invece volete prolungare la serata a Valletta:</strong> il <strong>Babel Bistro</strong> (Archbishop Street) è la scelta ideale per chiudere la giornata. La musica live va dalle 20:00 alle 23:00 ogni giorno — jazz, blues, qualcosa di diverso ogni sera. Tavolini sul vicolo, cocktail ben fatti, atmosfera che qualcuno ha definito "il posto dove Oliver Reed avrebbe bevuto se fosse ancora in giro". Non è un locale elegante: è esattamente l'opposto, e questo è il suo punto di forza. Arrivate presto per il tavolo; se è pieno, si sta anche in piedi.</p>
+<p><strong>Semplice passeggiata notturna a Valletta:</strong> Triq ir-Repubblika e i vicoli laterali di sera si svuotano dei turisti e restano ai locali. La pietra calcarea illuminata dai lampioni, i balconi in legno colorati che proiettano ombre sulle facciate — è una delle scene più belle per le fotografie notturne. Appoggiate il telefono a una spallina o a un parapetto per scatti stabili senza flash.</p>
+<p>📷 <strong>Consiglio fotografico notturno:</strong> cercate l'angolo di Triq Sant'Orsla (St. Ursula Street) o Triq ir-Repubblika dove le strade sono in pendenza — la prospettiva con i lampioni che si restringono verso il basso e le case di pietra dorata illuminate è una delle immagini più evocative di Valletta di notte.</p>
+<p>🛍️ <strong>Riepilogo acquisti del giorno:</strong> ceramiche dipinte a mano e vetro soffiato (botteghe di Valletta, zona Triq ir-Repubblika e vie laterali), merletti maltesi tradizionali (prodotto unico da cercare nei negozi artigiani, non nelle bancarelle). Per prodotti alimentari locali, un supermercato sulla strada del rientro è l'opzione migliore per vini in bottiglia, conserve e formaggio confezionato sottovuoto — chiedete in guesthouse quale è il più vicino lungo la strada.</p>
+</template>
+<template id="day-4-full">
+<h2>Giorno Sabato 27 giugno – Mdina, Rabat e Dingli Cliffs</h2>
+<p>Una giornata nell'entroterra e sul versante occidentale dell'isola: la silenziosa città medievale di Mdina, il borgo vivo di Rabat con il suo mercato artigianale, una sosta al villaggio dei mastri vetrai di Ta' Qali, e nel pomeriggio le spettacolari scogliere di Dingli affacciate sul Mediterraneo aperto. È una delle giornate più varie e scenografiche del viaggio, con paesaggi molto diversi tra loro nell'arco di poche ore.</p>
+<h3>Logistica e distanze</h3>
+<p>Da Marsaxlokk a Mdina sono circa 28–32 km: in condizioni normali il sabato mattina si percorrono in 35–45 minuti via SS1 (direzione Valletta) e poi deviazione verso Rabat/Mdina. Prendete la strada interna passando per Żabbar, Paola e poi sull'autostrada A1 verso Attard: è il percorso più scorrevole. Partite entro le 8:30–9:00 al più tardi.</p>
+<p>Da Mdina/Rabat a Ta' Qali: 3–4 km, circa 8 minuti.</p>
+<p>Da Ta' Qali alle Dingli Cliffs: circa 8 km, 15 minuti.</p>
+<p>Da Dingli Cliffs a Marsaxlokk per il rientro: circa 30–35 km, 40–50 minuti.</p>
+<h3>Mattina – Mdina, la Città del Silenzio</h3>
+<p>Arrivare presto — entro le 9:00 o poco dopo — è fondamentale. Mdina è una delle mete più fotografate di Malta e in piena estate i pullman turistici iniziano ad arrivare intorno alle 10:00–10:30. La mattina presto la città è quasi deserta, i vicoli sono immersi nell'ombra fresca e la pietra calcarea color miele brilla nella luce radente del mattino. È un'esperienza completamente diversa da quella che troverete due ore dopo.</p>
+<p><strong>Parcheggio:</strong> non è possibile parcheggiare all'interno delle mura di Mdina, riservato ai soli residenti e mezzi di emergenza. Le opzioni più comode sono il parcheggio nel fossato sotto le mura vicino alla Mdina Main Gate, e il parcheggio più ampio a 200 metri dall'ingresso principale, vicino al terminal degli autobus di Rabat — solitamente con più posti disponibili. Il parcheggio è gratuito; potrebbe avvicinarsi un individuo che chiede denaro sostenendo di essere addetto al parcheggio, ma non fornisce alcun biglietto o identificazione ufficiale e non è collegato al servizio in modo ufficiale. Il consiglio è: parcheggiare nel fossato sotto le mura (ben segnalato, a 2 minuti a piedi dall'ingresso principale), ignorare con gentilezza chi si avvicina a chiedere mance, e godersi il fatto che il parcheggio è completamente gratuito.</p>
+<p><strong>Ingresso a Mdina:</strong> libero, nessun biglietto. Si passa dalla porta monumentale barocca — la Mdina Main Gate, costruita nel 1724 — e ci si ritrova immediatamente in un altro mondo.</p>
+<p><strong>Cosa vedere a Mdina:</strong></p>
+<p>La <strong>Cattedrale di San Paolo</strong> è il cuore religioso della città, costruita in stile barocco dopo il terremoto del 1693 che distrusse quella precedente. La facciata con i due campanili simmetrici è una delle immagini più iconiche di Malta. L'interno ospita il <strong>Museo della Cattedrale</strong> (biglietto separato, circa €5): tra i capolavori esposti ci sono una serie di acqueforti di Albrecht Dürer — un colpo d'occhio inaspettato per un museo così piccolo. Vale una visita rapida di 20–30 minuti.</p>
+<p>Il <strong>Palazzo Vilhena</strong> (Museo di Storia Naturale) è un palazzo settecentesco restaurato, con una bella facciata che dà sulla piazza principale. L'ingresso al museo è circa €5. La collezione è didattica e piacevole, con fossili, minerali e fauna maltese — per un ragazzo di 14 anni è una sosta interessante, anche solo per il palazzo in sé.</p>
+<p>Le <strong>mura panoramiche di Mdina</strong>: percorrete i bastioni sul lato nord della città (direzione Pjazza San Publiju) per la vista più aperta sulla campagna maltese. Nelle giornate limpide di giugno si vede il profilo lontano della Sicilia all'orizzonte. È una delle viste più belle di Malta, completamente gratuita e accessibile a piedi in 10 minuti dall'ingresso principale.</p>
+<p>📷 <strong>Consigli fotografici:</strong> i vicoli stretti di Mdina, con le porte color pastello e le finestre con inferriate di ferro battuto, sono tra i soggetti più fotografati dell'isola. La luce del mattino presto crea ombre scenografiche che scolpiscono la pietra. Mdina è situata su una collina che domina il resto dell'isola da nord a est a ovest: cercate la via che porta ai bastioni nord per la foto con la campagna maltese sullo sfondo. Due composizioni particolarmente riuscite: (1) un vicolo stretto con una porta colorata in primo piano e la luce che filtra dall'alto a creare un corridoio d'ombra e luce; (2) la facciata della Cattedrale inquadrata dall'arco d'ingresso della piazzetta antistante, con i campanili che emergono sopra i tetti.</p>
+<p><strong>Sosta obbligatoria — Fontanella Tea Garden</strong> (Triq is-Sur, sui bastioni): uno dei posti più iconici di tutta Malta. Arroccato sulle mura fortificate di Mdina con viste panoramiche su gran parte dell'isola, Fontanella Tea Garden è uno dei locali più conosciuti di Malta. È il posto perfetto per fare colazione o pausa caffè mentre si gode il panorama: tavoli all'aperto sulla terrazza del bastione, con la campagna maltese che si estende fino al mare in lontananza. Molti visitatori lodano l'ampia selezione di torte fatte in casa e la magnifica vista panoramica: vale la pena aspettare un tavolo sul lato esterno del bastione. Da ordinare: una fetta di torta al cioccolato-arancio o alla nocciola (sono quelle più apprezzate nelle recensioni), una Kinnie ghiacciata o un caffè maltese, e il tradizionale <em>ftira</em> maltese se avete fame. I prezzi sono leggermente più alti della media, ma la posizione e l'atmosfera li giustificano ampiamente. Se la terrazza esterna è piena, aspettate: ne vale la pena.</p>
+<p>🛍️ <strong>Shopping a Mdina — Mdina Glass:</strong> appena entrati dalla Mdina Main Gate, sulla destra si trova il negozio di <strong>Mdina Glass</strong>, il produttore maltese di vetro soffiato più famoso dell'isola. Uno dei cavalli di battaglia dell'artigianato maltese è la lavorazione del vetro soffiato: appena entrati nella città di Mdina troverete il negozio subito dopo il Gate d'ingresso, con un'ampia scelta di forme e colori — i più gettonati sono i portacandele, le decorazioni a forma di animale e i lampadari. Gli oggetti in vetro di Mdina Glass hanno una qualità nettamente superiore ai souvenir da banchetto, e i prezzi — pur non economici — sono onesti per quello che è. Cercate i pezzi nella gamma di colori ambra-azzurro (i più caratteristici della produzione maltese) o il classico blu cobalto. Un portacandele medio costa 15–25 €; le decorazioni più elaborate arrivano a 50–80 €. È uno dei migliori acquisti da portare in Italia.</p>
+<h3>Pranzo – rapido e autentico a Rabat</h3>
+<p>Discesa a piedi verso <strong>Rabat</strong>, borgo adiacente a Mdina, con bar, mercatini e trattorie più informali e frequentate dai locali. Pranzo tipico: <em>ftira</em> farcita, <em>pastizzi</em>, coniglio alla maltese (il piatto nazionale per eccellenza, brasato con vino, aglio e erbe), dolci locali come <em>imqaret</em> (pasticcini fritti ripieni di datteri). È il momento del pranzo veloce, e Rabat ha l'indirizzo giusto.</p>
+<ul>
+  <li><strong>Is-Serkin - Crystal Palace Bar (Pjazza tal-Parroċċa, Rabat): </strong>L'istituzione suprema per i pastizzi. Un bar senza fronzoli dove i residenti si fermano a ogni ora per i pastizzi caldi (ricotta o piselli) e un tè nel bicchiere. Prezzo irrisorio, gusto autentico.</li>
+</ul>
+<ul>
+  <li><strong>Tappa curiosa vicino al Crystal Palace — negozietto di dolci tradizionali in Piazza Principale di Rabat:</strong> nella piazza principale di Rabat, non molto distante da Mdina, si trova un negozietto che propone dolci della tradizione, marmellate e prodotti vari — ottimo per uno spuntino veloce ma anche per acquisti-souvenir. Il proprietario è descritto come gentilissimo e disponibile. Ho trovato particolarmente buoni gli <em>imqaret</em> — e ne ho comprati un bel po' da portare in Italia. È un indirizzo perfetto per integrare il pranzo veloce con qualcosa di dolce e per fare qualche acquisto gastronomico.</li>
+</ul>
+<p>🛍️ <strong>Acquisti gastronomici a Rabat:</strong> oltre agli <em>imqaret</em> dal negozietto in piazza, cercate dolci secchi da portare in Italia — i <em>qagħaq tal-għasel</em> (biscotti ad anello con melassa e spezie), i <em>kwareżimal</em> (biscotti alle mandorle con scorza d'arancio), marmellate di fichi d'India, e se trovate, il liquore al fico d'India (<em>Bajtra</em>) — uno dei souvenir liquorosi più tipici di Malta.</p>
+<h3>Pomeriggio – Catacombe e Dingli Cliffs</h3>
+<p>Possibile breve visita alle <strong>Catacombe di San Paolo</strong> a Rabat: un labirinto sotterraneo paleocristiano su due livelli, affascinante e fresco (ottima sosta nella calura estiva). Apertura tutti i giorni in alta stagione.</p>
+<p>Poi in auto verso le <strong>Dingli Cliffs</strong>, le scogliere più alte di Malta (fino a 253 m sul mare), affacciate direttamente sul Mediterraneo aperto.</p>
+<p>Prima di salire alle scogliere, vale la pena fare una sosta di 30–40 minuti al <strong>Villaggio Artigianale di Ta' Qali</strong>, a soli 3–4 km da Rabat (circa 8 minuti in auto, ben segnalato).</p>
+<p>Situato su un ex campo d'aviazione della Seconda Guerra Mondiale, Ta' Qali Crafts Village si trova in una serie di capanne Nissan che nascondono la migliore selezione di artigianato maltese autentico dell'isola. È il posto dove trovare filigrana in argento, pizzi fatti a mano, vetro soffiato a mano, pelle, lino e ceramiche dipinte — tutto creato da artigiani locali. I due produttori di vetro da non perdere sono <strong>Phoenician Glassblowers</strong> e <strong>Mdina Glass</strong> (che ha anche un laboratorio qui, oltre al negozio a Mdina): si può osservare i maestri al lavoro con il soffio a bocca, creando oggetti dal vetro fuso — uno spettacolo genuinamente affascinante anche per un ragazzo di 14 anni.</p>
+<p>L'ingresso al villaggio è gratuito e il parcheggio è ampio e senza problemi. Se a Mdina non avete ancora acquistato nulla di artigianale, questo è il posto con la scelta più ampia dell'isola per ceramiche, vetro, gioielli in filigrana e merletti — a prezzi generalmente più bassi rispetto ai negozi di Valletta.</p>
+<p>⚠️ <strong>Nota:</strong> anche se l'aspetto esterno del villaggio è un po' anonimo (baracche militari riconvertite), l'interno dei laboratori è genuino e autentico. Non lasciatevi scoraggiare dall'apparenza.</p>
+<p><strong>Una curiosità da non perdere a Ta' Qali — Meridiana Wine Estate:</strong> lo stesso pianoro di Ta' Qali ospita la cantina Meridiana, uno dei produttori di vino maltese di maggiore qualità. L'estate Meridiana, che copre 19 ettari sull'ex pista d'atterraggio, è stata fondata nel 1987 con l'obiettivo di produrre vini di carattere maltese, con varietà di Chardonnay, Cabernet Sauvignon, Merlot e Syrah. Se passate in zona e volete comprare vino maltese di qualità direttamente dalla fonte, è uno dei posti migliori dell'isola. Non è necessaria prenotazione per acquistare in cantina.</p>
+<p>Da Ta' Qali alle Dingli Cliffs sono circa 8 km, 15 minuti in auto verso ovest seguendo le indicazioni per Dingli.</p>
+<p>A meno di un chilometro a sud-ovest del villaggio di Dingli, il terreno precipita bruscamente nelle spettacolari Dingli Cliffs, con le scogliere alte 220–253 metri. Una strada asfaltata percorre la sommità delle scogliere, con magnifiche passeggiate che superano la torre radar e si spingono fino alla piccola e solitaria Cappella di Santa Maria Maddalena del XVII secolo, proseguendo poi fino a Ta' Żuta — il punto più alto delle isole maltesi — dove si apre uno stupendo panorama lungo la costa fino alla minuscola isoletta di Filfla.</p>
+<p>Accesso libero, nessun biglietto. Breve passeggiata lungo il ciglio della scogliera: la vista è spettacolare, con il mare azzurro profondo e, nelle giornate limpide, l'isolotto di Filfla in lontananza. Un posto magnifico per le fotografie nel tardo pomeriggio, quando la luce diventa calda e le ombre scolpiscono la pietra.</p>
+<p><strong>Parcheggio:</strong> lungo la strada Triq Panoramika si trovano piccoli parcheggi improvvisati e gratuiti lungo il ciglio. Il parcheggio più grande si trova presso la Cappella di Santa Maria Maddalena, dove sono presenti anche diverse bancarelle di snack e souvenir. Sono tutti gratuiti, senza attendant.</p>
+<p><strong>Passeggiate:</strong> la strada panoramica è percorribile sia in auto (per scegliere i vari punti di vista) che a piedi. Il percorso classico va dalla Cappella di Santa Maria Maddalena verso sud fino a Ta' Żuta (il punto più alto): andata e ritorno a piedi sono circa 3 km, con dislivello minimo — assolutamente fattibile in 45–60 minuti con calma, anche nelle ore calde con acqua abbondante. Lungo il percorso, una piccola piattaforma panoramica a circa 1 km a sud della Cappella offre una delle viste più vertiginose sull'intera costa.</p>
+<p><strong>Giro in barca dalle Dingli Cliffs:</strong> le scogliere di Dingli non hanno un porto locale, quindi non ci sono barchette che partono da qui. La vista più spettacolare delle scogliere si ha da una barca, ma poiché non esiste alcuna città importante su tutta la costa occidentale, le gite in barca alle Dingli Cliffs sono solitamente organizzate da Valletta o dalle località dell'altro lato dell'isola, come parte di gite giornaliere intorno all'isola. I prezzi delle crociere variano da 55 a 65 €. Per voi che siete in auto e avete già organizzato la giornata in modo autonomo, non è un'opzione pratica oggi — ma se siete curiosi di vedere le scogliere dal mare, potete valutare una delle crociere circumnavigazione Malta in uno degli altri giorni (prenotabili su getyourguide.com).</p>
+<p><strong>Il Cliffs Interpretation Centre:</strong> nei pressi della Cappella di Santa Maria Maddalena si trova il Cliffs Interpretation Centre, un centro informativo dedicato alla scogliera e all'area circostante. Ingresso gratuito, vale una sosta rapida per capire la geologia e la fauna dell'area.</p>
+<p>📷 <strong>Consigli fotografici:</strong> le Dingli Cliffs sono bellissime in qualsiasi momento della giornata, ma la luce del pomeriggio (dalle 17:00 in poi) e quella del tramonto sono semplicemente spettacolari. Il tramonto da qui, con il cielo arancione sul Mediterraneo aperto, è uno dei più belli di Malta. Posizionatevi a sud della Cappella, verso Ta' Żuta, dove la scogliera è più verticale e il dislivello più impressionante. Due angolazioni da cercare: (1) dal bordo della scogliera verso sud con l'isolotto di Filfla in lontananza — scattate in verticale per includere sia il ciglio della roccia che il mare lontananza; (2) la Cappella di Santa Maria Maddalena solitaria sul pianoro erboso con il mare sullo sfondo — una delle immagini più iconiche di Malta.</p>
+<p><strong>Sosta rinfrescante:</strong> alle bancarelle vicino alla Cappella troverete granite, gelati e bibite fresche. Dopo la passeggiata sul pianoro erboso sotto il sole di giugno è un sollievo molto gradito.</p>
+<h3>Sera – Aperitivo di rientro — Żurrieq o sulla strada</h3>
+<p>Sulla strada del ritorno verso Marsaxlokk potete passare per <strong>Żurrieq</strong> (10 minuti dalle Dingli Cliffs in direzione est), uno dei borghi più tipici del sud di Malta, con una piazza principale animata e qualche bar locale. Se avete voglia di una sosta prima di rientrare, un'Aperol o una Cisk in uno dei bar della piazza principale di Żurrieq è un'esperienza molto più locale e autentica rispetto a un bar turistico. Non è un posto da cartolina — è esattamente quello che è: un paese maltese il sabato sera, con anziani ai tavoli e bambini in piazza.</p>
+<p>In alternativa, potete rientrare direttamente a Marsaxlokk e fare l'aperitivo sul porto come le sere precedenti, scegliendo <strong>iPlace Café</strong> (già segnalato) o uno dei locali che ancora non avete provato.</p>
+<h3>Cena — non a Marsaxlokk</h3>
+<p>Questa sera, avendo già provato i principali ristoranti del porto nei giorni precedenti, vale la pena fare qualcosa di diverso: cenare a <strong>Mdina</strong>, oppure rientrando sfruttare la strada per fermarsi in zona.</p>
+<p><strong>Opzione A — Bacchus Restaurant (Mdina, altamente consigliata)</strong></p>
+<p>Bacchus è ospitato in due sale a volta costruite dal Gran Maestro Fra Martino De Redin tra il 1657 e il 1660, originariamente come depositi di polvere da sparo per le fortificazioni di Mdina. Queste camere aristocratiche sono state trasformate nell'ambiente perfetto per una cena di prima classe. Il locale ha quasi mezzo secolo di storia e le recensioni più recenti sono entusiastiche: Frank, il capocameriere dal 1978, è uno dei protagonisti dell'esperienza — spiritoso, pieno di aneddoti su Malta, capace di rendere la serata memorabile da solo. Da ordinare: il coniglio ripieno arrotolato (<em>rabbit belly roulade</em>) se è in carta, il risotto, il branzino alla griglia, e come dolce la torta al cioccolato e peperoncino — una delle specialità più citate nelle recensioni. Il prezzo indicativo è di circa €25–30 a persona, con un buon vino maltese incluso. <strong>Prenotazione consigliata</strong>, specialmente il sabato sera in estate: chiamate in anticipo o prenotate su bookia.mt.</p>
+<p>⚠️ <strong>Dress code consigliato:</strong> Bacchus è un locale elegante all'interno delle mura storiche. Evitate pantaloncini e canottiere — qualcosa di presentabile ma non formale è l'approccio giusto.</p>
+<p><strong>Opzione B — The Medina Restaurant (Mdina)</strong></p>
+<p>Ottimo ristorante a Mdina, con cibo ricercato e influenze arabe, ottima presentazione e buon servizio. Non troppo turistico, fuori dal circuito più battuto — si consiglia la prenotazione. Cucina maltese con elementi mediterranei più ampi, menu bilanciato tra pesce e carne. Atmosfera elegante ma non formale. Prezzi simili a Bacchus.</p>
+<p><strong>Opzione C — Rientro verso Marsaxlokk con tappa a Żabbar o Paola</strong></p>
+<p>Se preferite rientrare prima e cenare in zona, lungo la SS1 e nelle strade che portano verso Marsaxlokk ci sono alcune trattorie locali frequentate dai maltesi. Non sono posti da guida turistica — sono ristoranti di quartiere dove si mangia cucina casalinga maltese a prezzi bassi. Chiedete alla guesthouse il loro indirizzo preferito in zona: spesso le segnalazioni più autentiche vengono dagli stessi gestori.</p>
+<p><strong>Cosa ordinare a cena questa sera:</strong> se siete a Mdina, è la serata ideale per il <strong>coniglio alla maltese</strong> (<em>fenek moqli</em>, brasato nel vino bianco con aglio, alloro ed erbe) — il piatto nazionale per eccellenza, che Bacchus prepara con grande cura. Da bere: chiedete il <strong>Caravaggio Chardonnay</strong> di Meridiana (che avete magari visto oggi a Ta' Qali) o un rosso maltese <strong>Gellewza</strong> — il vitigno autoctono, fruttato e particolare, che non si trova fuori dall'arcipelago.</p>
+<h3>Dopo cena — Mdina di notte</h3>
+<p>Se avete cenato a Mdina, non tornate subito in macchina. Mdina di notte è uno spettacolo completamente diverso da quello del mattino. La sera la città si svuota dei turisti e rimane ai residenti: una delle scene più belle per fotografie notturne, con la pietra calcarea illuminata dai lampioni e le case che proiettano ombre sulle facciate.</p>
+<p>Passeggiata libera tra i vicoli illuminati dai fanali: la pietra color miele diventa oro scuro alla luce artificiale, le ombre sono profonde e silenziose. Portate il telefono appoggiato a un muro o a un parapetto per scatti stabili in modalità notte — non servono macchine fotografiche professionali. Il silenzio è quasi totale: solo i vostri passi sui sampietrini.</p>
+<p>📷 <strong>Consiglio fotografico notturno:</strong> cercate il vicolo che porta verso le mura panoramiche nord, con i lampioni in fila che si allontanano verso il buio. La prospettiva con la pietra illuminata e il cielo scuro è una delle immagini più evocative di tutta la settimana. Appoggiare il telefono orizzontale su un gradino o un muretto dà risultati sorprendenti anche con le fotocamere degli smartphone moderni.</p>
+<p><strong>In alternativa al rientro immediato — Fontanella Tea Garden aperto la sera:</strong> il locale rimane aperto fino a tardi la sera. Se dopo cena avete voglia di qualcosa di dolce in terrazza, fermatevi per una fetta di torta alla nocciola o al cioccolato con vista notturna sull'isola illuminata. È una prospettiva completamente diversa da quella del mattino: le luci dei villaggi lontani che punteggiano il buio fino al mare.</p>
+<h3>Rientro a Marsaxlokk</h3>
+<p>Da Mdina a Marsaxlokk: circa 30–35 km, 40–50 minuti. La strada di notte è scorrevole. Ricordate: si guida a sinistra — nelle rotatorie in uscita dai centri abitati, la massima attenzione è sempre d'obbligo, specialmente dopo cena.</p>
+<p>🛍️ <strong>Souvenir del giorno:</strong> <em>Artigianato (da portare in Italia):</em> vetro soffiato di Mdina Glass (porta-candele, decorazioni, oggetti in vetro ambra o blu cobalto) — qualità eccellente, acquisto consigliato; gioielli in filigrana d'argento o ceramiche dipinte a mano a Ta' Qali. <em>Gastronomia:</em> <em>imqaret</em> e dolci secchi dal negozietto della piazza di Rabat; vino Meridiana direttamente dalla cantina di Ta' Qali; liquore al fico d'India <em>Bajtra</em>; marmellate di fichi d'India. Per formaggi <em>gbejniet</em>, olio e conserve, i supermercati lungo la SS1 (Paola o Żabbar) hanno ottima scelta a prezzi bassi — chiedete in guesthouse quello più comodo sul rientro.</p>
+</template>
+<template id="day-5-full">
+<h2>Giorno Domenica 28 giugno – Mercato di Marsaxlokk e Comino/Blue Lagoon</h2>
+<p>La domenica ha un ritmo preciso: si inizia presto con il mercato (che vale la pena solo di mattina), poi in auto verso nord per Comino, rientro nel pomeriggio. È una delle giornate più lunghe e varie della settimana — mettete la sveglia.</p>
+<h3>Mattina presto – Mercato domenicale di Marsaxlokk</h3>
+<p>Il mercato della domenica di Marsaxlokk è uno degli appuntamenti più autentici e colorati di Malta. Si svolge direttamente sul lungomare del porto, dall'alba fino al primo pomeriggio, e si divide in due parti: il mercato del pesce (i pescatori scaricano il pescato fresco direttamente dai <em>luzzu</em> al molo) e il mercato generale con prodotti tipici, alimentari, souvenir, abbigliamento.</p>
+<p>La guesthouse stessa si trova a pochi passi dal porto, quindi questa domenica mattina avete un vantaggio enorme rispetto a chi viene da fuori: potete scendere a piedi al mercato in meno di cinque minuti.</p>
+<p>⚠️ <strong>Nota importante sul parcheggio della domenica:</strong> il lungomare è chiuso ai veicoli il sabato sera e la domenica a causa del mercato. L'indirizzo del parcheggio pubblico principale è 51, Triq il-Kavallerizza. Dato che siete alloggiati al Duncan Guesthouse, verificate con la reception dove lasciare l'auto per la mattina — troveranno certamente la soluzione più comoda. Non avrete comunque bisogno dell'auto fino alla partenza per Ċirkewwa.</p>
+<p>Il mercato apre alle 8:30, ma l'orario ideale per arrivare è intorno alle 6:30–7:00: avrete la possibilità di vedere gli ultimi pescatori rientrare in baia con il pescato del mattino e godervi la scena più autentica prima che i pullman turistici inizino ad arrivare intorno alle 10:00. Il pesce fresco finisce in fretta: se volete vivere il mercato del pesce vero e proprio, bisogna essere lì di prima mattina.<strong> </strong></p>
+<p><strong>Cosa troverete al mercato:</strong> il mercato non è più solo pesce: nel corso degli anni si è espanso con miele locale, marmellate, vino, verdure fresche, souvenir e abbigliamento. Lungo il lungomare trovate banchi di pesce con polpi, crostacei e il pescato della notte, ma anche bancarelle di prodotti tipici, dolci artigianali, artigianato locale e souvenir. Le recensioni segnalano in particolare le <em>kannoli</em> al pistacchio come una delle cose da non perdere.</p>
+<p><strong>Cosa comprare e cosa evitare:</strong> puntate su miele di carrubo e di timo selvatico (chiedete di assaggiarli entrambi, sono molto diversi tra loro), <em>qagħaq tal-għasel</em>, croccanti di mandorle, capperi, conserve di pomodoro, <em>gbejniet</em> freschi o al pepe. Le recensioni più recenti avvertono di stare alla larga dai banchi di pasticceria che espongono dolci preparati ore prima — non sempre freschi. Per i dolci, meglio aspettare la pasticceria o il bar di fiducia. Evitate i souvenir plastificati — quelli autentici si trovano in bottega, non al banchetto.</p>
+<p><strong>Curiosità del mercato — la statua del molo:</strong> sul lungomare si trova una piccola scultura in bronzo poco nota ai turisti: un bambino che regge un <em>luzzu</em> in miniatura aspettando il padre pescatore che sale dal mare con due ceste di pesce. È nascosta tra le bancarelle domenicali ma vale una foto da vicino.</p>
+<p>📷 <strong>Consiglio fotografico:</strong> arrivate tra le 7:00 e le 8:00 per la luce migliore e la scena più autentica, prima che i gruppi organizzati raggiungano il picco. I banchi del pesce con i <em>luzzu</em> colorati sullo sfondo sono tra le immagini più iconiche di Malta — mettetevi in basso, quasi al livello dei banchi, per includere sia i venditori che le barche in un'unica inquadratura verticale. La luce radente del mattino presto scolpisce i colori in modo straordinario.</p>
+<p>🛍️ <strong>Acquisti al mercato:</strong> miele maltese (carrubo o timo), <em>qagħaq tal-għasel</em>, croccanti, capperi sotto sale, conserve di pomodoro San Elmo, <em>gbejniet</em> freschi avvolti nella carta (durano qualche giorno), vini locali, liquore al fico d'India <em>Bajtra</em>. Se trovate artigianato locale autentico (ceramiche, miniature dei <em>luzzu</em> in legno o ceramica) a prezzi onesti, è il momento giusto per comprare.</p>
+<h3>Mattina/pomeriggio – Comino e Blue Lagoon</h3>
+<p>Sistemate gli acquisti in guesthouse, prendete la borsa spiaggia (maschera, pinne, crema solare, acqua abbondante, contanti) e partite in auto. <strong>Distanza Marsaxlokk → Ċirkewwa: circa 50–55 km, 50–60 minuti</strong> percorrendo l'autostrada A1 verso nord-ovest (direzione Mellieħa). La domenica mattina il traffico sulla statale è generalmente scorrevole.</p>
+<p><strong>Parcheggio a Ċirkewwa:</strong> è disponibile parcheggio gratuito al terminal dei traghetti di Ċirkewwa. In alternativa, se il parcheggio di Ċirkewwa risulta pieno (cosa possibile la domenica estiva), il punto d'imbarco di Marfa — a circa 1 km prima del terminal — è una valida alternativa con più spazio disponibile. Alcune fonti segnalano un costo di parcheggio di circa €3–5 al giorno nelle zone a pagamento vicine al terminal. La zona gratuita è però segnalata come disponibile — arrivando entro le 9:30 non dovreste avere problemi.</p>
+<h3>Le opzioni per raggiungere Comino e la Blue Lagoon</h3>
+<p>Avete tre possibilità concrete, con caratteristiche molto diverse tra loro:</p>
+<p><strong>Opzione A — Traghetto locale (consigliata per comodità e prezzo)</strong></p>
+<p>Due compagnie gestiscono il servizio traghetti da Ċirkewwa: Comino Co-Op Ferries e Ebsons. Il costo indicativo è tra €13 e €15 a persona per il biglietto andata/ritorno, che include anche un breve giro delle grotte di Comino. Le partenze da Ċirkewwa avvengono ogni 30 minuti circa, con le prime corse intorno alle 8:30–9:00. Il consiglio unanime è di prendere la prima barca disponibile per trovare posto sugli scogli prima dell'arrivo dei gruppi organizzati. La traversata dura circa 20–25 minuti.</p>
+<p>I biglietti si acquistano ai chioschi vicino all'imbarcadero, ma è possibile (e consigliato in alta stagione estiva) prenotare online in anticipo su cominoferryservice.com o tramite Comino Co-Op Ferries.</p>
+<p><strong>Opzione B — Barca privata o tour in barca (esperienza premium)</strong></p>
+<p>Da Ċirkewwa partono anche tour in barca di 3 ore che combinano Blue Lagoon, Crystal Lagoon e grotte marine, con possibilità di fare il bagno direttamente dalla barca, a circa €25 a persona. Per una famiglia, esiste anche l'opzione barca privata con skipper (26 piedi, motori Yamaha): include snorkelling, attrezzatura, ghiaccio e 4 ore sull'acqua con tappe flessibili. Lo skipper parla inglese e italiano. È l'opzione più cara ma anche la più libera — nessuna folla sugli scogli, nuotate direttamente dall'imbarcazione. Prenotabile su getyourguide.com o direttamente con operatori locali.</p>
+<p><strong>Opzione C — Tour organizzato da Sliema/Bugibba</strong></p>
+<p>Meno adatta a voi che siete in auto: prevede partenza da Sliema con catamarano, include pranzo e open bar, ma vi lega a orari fissi. I tour da Sliema o Bugibba durano 7–8 ore e costano da €20 a €35 per adulto. Non pratica se avete l'auto parcheggiata a Ċirkewwa.</p>
+<p>⚠️ <strong>OBBLIGATORIO — Permesso gratuito Blue Lagoon:</strong> chiunque voglia mettere piede a terra alla Blue Lagoon deve registrarsi sul sito ufficiale blcomino.com, selezionare la fascia oraria preferita e ricevere un QR code via email — la registrazione è gratuita. Il sistema, introdotto a maggio 2025, limita i visitatori contemporanei a 4.000 (erano fino a 12.000 in passato): prenotare in anticipo è essenziale, soprattutto per una domenica di fine giugno. Il permesso va prenotato con diversi giorni di anticipo rispetto alla data del viaggio. Se acquistate il biglietto con Comino Co-Op Ferries, verificate se il permesso è già incluso nel pacchetto — alcune compagnie lo gestiscono in automatico.</p>
+<h3>Comino e Blue Lagoon – cosa aspettarsi</h3>
+<p>La Blue Lagoon è una piscina naturale tra l'isola di Comino e l'isolotto di Cominotto: parzialmente sabbiosa, parzialmente rocciosa, con una grotta dove si nasconde una piccola spiaggia sabbiosa interna. Le acque vanno dal turchese al verde smeraldo secondo l'ora del giorno. Per un ragazzo di 14 anni con maschera e pinne è un posto straordinario: lo snorkelling è ottimo, i tuffi dagli scogli sono garantiti.</p>
+<p><strong>Arrivate il prima possibile</strong> — la domenica è il giorno più affollato. Prendere la prima barca è fondamentale se volete godervi la laguna con meno gente e assicurarvi un posto sulle rocce bianche.</p>
+<p><strong>Punto panoramico dall'alto:</strong> prima di scendere alla laguna, fate una sosta breve in cima alla scogliera che sovrasta la Blue Lagoon — si vede l'intera baia dall'alto con il contrasto straordinario tra l'acqua turchese, le rocce bianche e le barche ancorate. È uno dei punti panoramici più fotografati di Malta.</p>
+<p><strong>Se volete allontanarvi dalla folla:</strong> percorrete a piedi il sentiero che porta a <strong>Santa Marija Bay</strong> (20–25 minuti a piedi dalla Blue Lagoon) — una baia più riparata, meno frequentata, con acque altrettanto limpide ma più silenziose. Lungo il percorso si attraversa il centro dell'isola con le sue rocce calcaree e la macchia mediterranea: un contrasto bellissimo con il mare sotto.</p>
+<p>📷 <strong>Consigli fotografici:</strong> dall'alto della scogliera sulla Blue Lagoon scattate in verticale per catturare sia il bordo della roccia bianca in primo piano che il turchese profondo dell'acqua sotto. La mattina presto la luce è radente e i colori dell'acqua sono al massimo. Dall'acqua stessa, con gli occhialini, i fondali rocciosi con i pesci sono bellissimi — se avete una GoPro o uno smartphone waterproof portatelo. Il contrasto con le rocce chiare fa sì che quasi qualsiasi scatto da sott'acqua risulti spettacolare.</p>
+<h3>Pranzo a Comino — veloce e pratico</h3>
+<p>A Comino non ci sono ristoranti veri: solo chioschi e bar con panini, acqua e bibite. È l'occasione giusta per il pranzo al sacco che avete preparato la mattina al mercato — <em>hobż biż-żejt</em> o panino comprato al bar prima di partire, frutta, qualcosa di dolce. Portate acqua abbondante (almeno 1,5 litri a persona) perché i chioschi sull'isola vendono a prezzi alti.</p>
+<h3>Pomeriggio/rientro – sosta a Mosta con deviazione consigliata</h3>
+<p>Rientro in barca verso Ċirkewwa nel tardo pomeriggio (puntate alla barca delle 16:30–17:00 per non essere in coda con tutti gli altri). Riprendete l'auto e iniziate il rientro verso sud. <strong>Da Ċirkewwa a Mosta sono circa 25 km, 30 minuti</strong> — è sulla strada verso Marsaxlokk e vale una sosta.</p>
+<p><strong>Mosta e la Rotunda</strong> — se avete ancora energie dopo la giornata di mare, la <strong>Rotunda di Mosta</strong> (Chiesa di Santa Maria Assunta) è una delle chiese più imponenti di Malta: la sua cupola dal diametro di 37 metri è la terza più grande d'Europa, costruita senza impalcature interne secondo la tradizione locale. L'ingresso costa €5 e include la chiesa, l'accesso al rifugio antiaereo della Seconda Guerra Mondiale e la balconata interna. Una visita rapida di 20–30 minuti è sufficiente e vale la sosta — la storia del bombardamento del 1942, quando una bomba tedesca attraversò la cupola durante la messa senza esplodere (il "miracolo di Mosta"), è raccontata all'interno con tanto di bomba inerte esposta. Parcheggio nelle strade vicine, gratuito la domenica.</p>
+<p>📷 <strong>Consiglio fotografico:</strong> fotografate la cupola della Rotunda dall'interno verso l'alto — l'effetto prospettico con le decorazioni in trompe-l'œil è notevole. Dall'esterno, l'angolazione migliore è da Pjazza Rotunda con la facciata nel tardo pomeriggio illuminata dal sole calante.</p>
+<h3>Aperitivo a Mosta prima di cena</h3>
+<p>Se cenate a Mosta, fermatevi per l'aperitivo in un bar della piazza principale — la piazza è animata la domenica sera, con famiglie e locali seduti ai tavolini all'aperto. È uno dei momenti più autentici della domenica maltese, completamente diverso dall'atmosfera turistica di Valletta.</p>
+<h3>Cena — un'occasione speciale fuori dal porto</h3>
+<p>Questa è la serata giusta per provare qualcosa di completamente diverso rispetto ai ristoranti di pesce di Marsaxlokk già visitati. Siete a Mosta, a 20–25 minuti da casa, ed è domenica sera.</p>
+<p><strong>Opzione A — Ta' Marija (Mosta, altamente consigliata)</strong></p>
+<p>Ta' Marija è un ristorante a conduzione familiare in attività da oltre mezzo secolo, famoso per la cucina maltese autentica e per le serate con spettacolo folkloristico — mandolini e chitarre itineranti tra i tavoli, seguiti da danzatori in costumi tradizionali del Settecento che raccontano la storia maltese attraverso la danza. Gli spettacoli di folklore si tengono ogni mercoledì (aprile–novembre) e ogni venerdì sera tutto l'anno, a partire dalle 20:00. La domenica non è previsto lo show serale fisso, ma il buffet domenicale è tra le opzioni più apprezzate: il buffet maltese del fine settimana è proposto a circa €25 a persona incluso vino e acqua, con antipasto, portata principale, dessert e caffè. La prenotazione è vivamente consigliata. Si prenota su bookia.mt o chiamando direttamente. Da ordinare: coniglio maltese in tre versioni (<em>fenek</em>), <em>ravjul</em> (ravioli ripieni di <em>gbejniet</em>), salsicce maltesi alla brace, bragioli. Per un ragazzo di 14 anni l'atmosfera con la musica dal vivo è genuinamente divertente.</p>
+<p>📍 Constitution Street, Mosta — a 2 minuti a piedi dalla Rotunda. Parcheggio nelle strade adiacenti (gratuito la domenica).</p>
+<p><strong>Opzione B — Lord Nelson (Mosta)</strong></p>
+<p>Altro locale caratteristico nei pressi della Rotunda, il Lord Nelson è ricavato da un'antica abitazione maltese di cui sono stati mantenuti tutti gli elementi originali — pietra a vista, travi, arredi tradizionali. Menu ricco di cucina mediterranea con molte portate di pesce e una discreta lista di vini. Più informale e meno turistico di Ta' Marija, con prezzi leggermente più bassi. Ottimo se preferite un ambiente raccolto senza l'aspetto "spettacolo".</p>
+<p><strong>Opzione C — Rientrare a Marsaxlokk </strong></p>
+<p>Se la stanchezza della giornata vi porta a preferire la comodità del porto, <strong>Tartarun</strong> è il ristorante di Marsaxlokk da considerare, se non ancora provato in questa settimana — il livello più alto del porto, con pesce rigorosamente locale che arriva ogni giorno direttamente dai pescatori del villaggio. È la scelta giusta per una cena di pesce raffinata a due passi dalla guesthouse. Prenotazione consigliata, specialmente la domenica sera.</p>
+<p><strong>Cosa ordinare a cena:</strong> se siete a Ta' Marija, il piatto da non perdere è il <strong>coniglio alla maltese</strong> (<em>fenek moqli</em>) — stufato nel vino bianco con aglio, alloro ed erbe, o grigliato, o in tre versioni sul tagliere. È il piatto nazionale per eccellenza e Ta' Marija è tra i posti più citati in tutta l'isola per questa ricetta. Da bere: vino rosso <strong>Gellewza</strong> (il vitigno autoctono maltese, fruttato e insolito) oppure il bianco Meridiana Chardonnay.</p>
+<h3>Dopo cena — una passeggiata diversa</h3>
+<p>Questa sera, per non ripetere la solita passeggiata sul porto di Marsaxlokk, due alternative:</p>
+<p><strong>Se avete cenato a Mosta:</strong> passeggiata notturna intorno alla Rotunda illuminata — di sera la cupola è illuminata ed è una delle scene più belle di Malta. La piazza si anima con famiglie e giovani locali la domenica sera. Fermatevi in uno dei bar della piazza per un gelato o un dolce tradizionale maltese prima di rientrare in auto. Da Mosta a Marsaxlokk sono circa 25–30 km, 30–40 minuti — la strada di notte è scorrevole.</p>
+<p><strong>Se siete rientrati a Marsaxlokk:</strong> anziché il solito lungomare, fate una passeggiata serale verso <strong>Fort St. Lucian</strong> (15 minuti a piedi dal centro verso la punta del promontorio) — di notte il percorso è tranquillo e silenzioso, con la baia di Marsaxlokk illuminata dalle luci del porto. Il panorama notturno sulla baia, con i <em>luzzu</em> illuminati dall'acqua scura e le luci lontane di Birżebbuġa, è completamente diverso da quello del giorno. Non servono fotocamere professionali — appoggiate lo smartphone orizzontale su un muretto per scatti stabili in modalità notte.</p>
+<p>📷 <strong>Consiglio fotografico notturno:</strong> se siete a Mosta, la Rotunda illuminata di sera si fotografa meglio dalla piazza frontale, con un grandangolo o in modalità panorama sullo smartphone — la cupola è così grande che per includerla intera da vicino bisogna allontanarsi almeno 50 metri. La luce arancio-dorata sui blocchi di pietra calcarea è molto fotogenica.</p>
+<p>🛍️ <strong>Riepilogo acquisti del giorno:</strong> gli acquisti migliori della giornata si fanno la mattina al mercato domenicale. Evitate qualsiasi souvenir venduto sulle barche per Comino o ai chioschi dell'isola — qualità generalmente bassa a prezzi alti. Se a Mosta passate davanti a un panificio o a una bottega di alimentari, cercate dolci secchi da portare in Italia: <em>qagħaq tal-għasel</em> e <em>kwareżimal</em> alle mandorle si conservano bene e fanno ottimi souvenir gastronomici.</p>
+</template>
+<template id="day-6-full">
+<h2>Giorno Lunedì 29 giugno – L'isola di Gozo in giornata</h2>
+<p>Gozo è Malta in versione più verde, più silenziosa e più rurale. Differente nell'anima: più campagna, più pietra, meno turismo di massa, con un ritmo tutto suo. Vale assolutamente una giornata intera, e portare l'auto con sé sul traghetto è la scelta giusta per avere piena autonomia. Oggi il percorso attraversa l'isola da nord a sud, con un finale sulle scogliere più alte dell'arcipelago e una cena direttamente sul mare.</p>
+<h3>Logistica di partenza: Marsaxlokk → Ċirkewwa</h3>
+<p><strong>Distanza:</strong> circa 50–55 km. <strong>Tempo:</strong> 50–60 minuti percorrendo l'autostrada A1 verso nord-ovest in direzione Mellieħa/Ċirkewwa. Il lunedì mattina presto la strada è generalmente scorrevole.</p>
+<p><strong>Partenza consigliata da Marsaxlokk:</strong> non oltre le 7:30–8:00. Gozo è piccola ma oggi c'è molto da vedere — partire tardi significa sprecare le ore migliori della giornata.</p>
+<h3>Il traghetto per Gozo: tutto quello che serve sapere</h3>
+<p>Il traghetto da Ċirkewwa è gestito da <strong>Gozo Channel</strong> e funziona 24 ore su 24, 7 giorni su 7, con partenze ogni 30–45 minuti di giorno. La traversata dura circa 25 minuti e il porto d'arrivo a Gozo è Mġarr.</p>
+<p><strong>Meccanismo del biglietto (fondamentale saperlo):</strong> da Malta a Gozo non si paga nulla — arrivate a Ċirkewwa, seguite le indicazioni e salite direttamente. Il pagamento avviene solo al ritorno, al porto di Mġarr a Gozo, dove ci sono corsie per veicoli simili a un casello autostradale.</p>
+<p><strong>Costi indicativi:</strong> il biglietto andata e ritorno per un'auto con conducente è di circa €15,70; i passeggeri aggiuntivi pagano separatamente circa €4,65 a persona — per tre persone con auto, il totale a/r è intorno a €25–26. Preparate contanti o carta per il ritorno.</p>
+<p>⚠️ <strong>Portate l'auto su Gozo?</strong> Sì, assolutamente. Le compagnie di noleggio maltesi generalmente non pongono restrizioni all'imbarco per Gozo. Avere l'auto sull'isola vi dà libertà totale — oggi in particolare, con il percorso che attraversa tutta l'isola da nord a sud, è indispensabile.</p>
+<h3>Arrivo a Gozo — porto di Mġarr</h3>
+<p>Appena sbarcati, prima di prendere la strada per Victoria, fate una brevissima sosta al porto. Il <strong>One80 Kitchen</strong> al Mġarr Yacht Marina è perfetto per un caffè con vista prima di partire — ingredienti rigorosamente locali, ambiente moderno affacciato sulla marina.</p>
+<p><strong>Distanza Mġarr → Victoria:</strong> circa 6 km, 10–12 minuti in auto.</p>
+<h3>Mattina — Victoria e la Cittadella</h3>
+<p><strong>Victoria</strong> (detta anche Rabat dai gozitani) è la capitale dell'isola, posizionata quasi al centro geografico.</p>
+<p><strong>Parcheggio a Victoria:</strong> disponibile facilmente dietro la stazione degli autobus, a meno di 5 minuti a piedi dalla Cittadella. Solitamente gratuito o con piccole tariffe.</p>
+<p><strong>Prima tappa — Piazza It-Tokk (Piazza dell'Indipendenza):</strong> il cuore pulsante di Victoria. La piazza ospita ogni mattina il mercato della città, dove si trova di tutto: dai souvenir ai prodotti gastronomici tipici. Arrivando di mattina presto, il mercato è già in piena attività — è il momento giusto per curiosare tra le bancarelle prima che l'afflusso turistico aumenti.</p>
+<p>🛍️ <strong>Cosa comprare a It-Tokk:</strong> formaggi <em>gbejniet</em> gozitani (freschi con pepe o stagionati — qualità notevolmente superiore a quelli di Malta), olio d'oliva gozitano, marmellate artigianali, sale delle saline di Xwejni (lo ritroverete anche alle saline nel pomeriggio, ma se non ci andate è l'alternativa qui), vini locali, dolci <em>imqaret</em> freschi.</p>
+<p><strong>La Cittadella:</strong> arroccata su un'altura che domina tutta l'isola, è una città murata medievale e rinascimentale recentemente restaurata. L'ingresso è gratuito.</p>
+<p>La <strong>Cattedrale dell'Assunzione</strong> ha un segreto magnifico: il soffitto dipinto in <em>trompe-l'œil</em> che simula una cupola inesistente — dall'interno sembra di guardare verso l'alto una cupola barocca altissima, ma è tutta un'illusione pittorica. Ingresso nella navata libero; la cupola ha un biglietto separato di circa €3.</p>
+<p>Il <strong>Combo Ticket museale</strong> dà accesso a tutti i musei interni: €5,00 intero, €3,50 per ragazzi 12-17 anni. Aperto tutti i giorni 9:00-17:00 (chiuso il martedì — il lunedì è giorno pieno). Include la <strong>Vecchia Prigione</strong>, in funzione dal XVI secolo all'inizio del XX: le celle di circa 5 metri quadri con le iscrizioni dei prigionieri incise nelle pareti sono ancora intatte — per un ragazzo di 14 anni è genuinamente affascinante.</p>
+<p>Le <strong>mura panoramiche</strong>: camminare sui bastioni è gratuito e offre una vista a 360° con l'intera isola ai piedi — campi a terrazze, colline, il mare lontano su tutti i lati.</p>
+<p>📷 <strong>Consigli fotografici:</strong> dalla cima delle mura scattate verso nord per catturare i campi a terrazze e la costa lontana. Dentro la Cattedrale, fotografate verso l'alto il soffitto in <em>trompe-l'œil</em> dal centro della navata — l'effetto è sbalorditivo. Nei vicoli interni, cercate le porte colorate con le finestre a bifora in pietra.</p>
+<p><strong>Sosta caffè prima di ripartire:</strong> i bar sulla piazza principale di Victoria sono frequentati principalmente dai locali. Un caffè maltese in piedi al bancone, un <em>pastizz</em> caldo e siete pronti.</p>
+<h3>Metà mattina — Templi di Ġgantija (Xagħra)</h3>
+<p><strong>Distanza da Victoria:</strong> circa 4 km, 8–10 minuti verso est, direzione Xagħra.</p>
+<p>I <strong>Templi di Ġgantija</strong> risalgono a oltre 5.500 anni fa e rientrano tra le strutture autoportanti più antiche del mondo, precedenti perfino a Stonehenge. Il nome significa "gigante" in maltese — i gozitani erano convinti che solo i giganti potessero trasportare rocce del genere, alcune pesanti oltre 5 tonnellate. Si parte da un centro visitatori moderno con pannelli e video introduttivi.</p>
+<p><strong>Costi:</strong> biglietto intero €10, ridotto per ragazzi 12-17 anni €8. Aperto tutti i giorni 9:00-17:00 (chiuso il martedì). Parcheggio gratuito sul posto.</p>
+<p>📷 <strong>Consiglio fotografico:</strong> posizionatevi all'interno delle absidi del tempio sud con le pietre megalitiche in primo piano e il cielo azzurro come sfondo. Fotografate in verticale per enfatizzare l'altezza dei blocchi rispetto alle persone.</p>
+<h3>Pranzo — rapido sul lungomare di Marsalforn</h3>
+<p>Da Xagħra a Marsalforn sono circa 4 km, 8 minuti verso nord. Uno dei bar-chioschi sul lungomare propone panini, <em>ħobż biż-żejt</em> e granite — pranzo veloce guardando il mare, poi subito in moto verso la costa.</p>
+<h3>Primo pomeriggio — Saline di Xwejni e Valle di Wied il-Għasri</h3>
+<p>Queste due tappe si trovano sulla stessa costa nord di Gozo, a pochi minuti l'una dall'altra, e si combinano perfettamente in una passeggiata di circa un'ora e mezza.</p>
+<p><strong>Saline di Xwejni</strong></p>
+<p>Da Marsalforn verso ovest lungo la costa, dopo circa 2–3 km si raggiungono le <strong>saline di Xwejni</strong>. Risalenti all'epoca fenicia e romana, si estendono per circa 3 km lungo la costa e sono ancora gestite a mano da alcune famiglie locali. La raccolta avviene solo due volte l'anno, a giugno e agosto — siete qui esattamente nel momento giusto per vederla in corso o appena conclusa. Lungo la strada c'è il piccolo banchetto della famiglia Cini (che gestisce le saline dal 1969) dove si vendono sacchetti di sale marino al naturale o aromatizzato con timo, rosmarino o peperoncino. Parcheggio libero lungo la strada.</p>
+<p>🛍️ <strong>Acquisto da non perdere:</strong> il sale di Xwejni è uno dei souvenir più autentici e leggeri da portare in Italia — pesa poco, costa pochissimi euro, è prodotto a mano e racconta una storia. Prendete il sale al timo e quello al rosmarino.</p>
+<p>📷 <strong>Consiglio fotografico:</strong> fotografate in basso, quasi al livello delle vasche, per catturare il riflesso del cielo azzurro nell'acqua salata. La luce pomeridiana con angolazione laterale dà risultati straordinari.</p>
+<p><strong>Valle di Wied il-Għasri</strong></p>
+<p>A pochi minuti dalle saline si trova l'imbocco della <strong>Valle di Wied il-Għasri</strong>, uno dei luoghi più insoliti e meno frequentati di Gozo. Si tratta di una gola profonda e stretta scavata nel calcare, che scende lentamente verso il mare tra pareti di roccia sempre più alte, con fichi d'India e capperi spontanei sui muretti a secco ai lati del sentiero. La valle sbocca sul mare in una piccola insenatura di ciottoli, incastrata tra scogliere a picco, raggiungibile scendendo circa 100 gradini scavati nella roccia — non difficili, ma da affrontare con scarpe con suola. Ogni gradino è l'occasione per una sosta fotografica: la prospettiva cambia continuamente man mano che si scende.</p>
+<p>La baia in fondo è frequentata quasi esclusivamente dai locali e dai sub: è una delle destinazioni di immersione più apprezzate di Gozo per la presenza della cosiddetta <strong>Cathedral Cave</strong> (Blue Dome), una grotta sottomarina con volta alta e luce filtrata dall'alto. Anche senza attrezzatura subacquea, l'acqua è limpidissima e il bagno nella baia riparata vale la discesa.</p>
+<p>⚠️ <strong>Nota pratica:</strong> la discesa è percorribile senza difficoltà in circa 15 minuti, ma la risalita sotto il sole di giugno è più impegnativa — portate acqua. Non ci sono servizi né bar nelle vicinanze.</p>
+<p>📷 <strong>Consigli fotografici:</strong> la vista dall'alto della gola — guardando verso il basso lungo il canyon verso il mare — è una delle immagini più particolari di Gozo. Scattate dall'orlo del pianoro prima di iniziare la discesa, con la gola che si restringe in prospettiva verso il basso e il bagliore del mare aperto in lontananza. In fondo, fotografate verso l'alto le pareti della gola con il cielo come cornice.</p>
+<h3>Pomeriggio — Dwejra Bay e l'Inland Sea</h3>
+<p>Da Wied il-Għasri a Dwejra sono circa 10 km verso ovest/sud-ovest, 15–18 minuti in auto attraverso il cuore verde di Gozo.</p>
+<p>Dwejra Bay è famosa per essere stata la location dell'Azure Window (l'arco naturale crollato nel 2017), ma la zona rimane straordinaria anche senza di essa. Qui si trova l'<strong>Inland Sea</strong>, una piccola laguna interna collegata al mare aperto da un tunnel naturale lungo circa 80 metri.</p>
+<p><strong>Giro in barca all'Inland Sea — da non perdere:</strong> il barcaiolo guida attraverso il tunnel che sbuca in mare aperto, con le pareti della scogliera che si alzano su entrambi i lati — scenografico e adrenalinico. Costo circa €4 a testa, pagamento in contanti. Le barche non escono con mare mosso; a giugno è raro ma possibile con vento di maestrale.</p>
+<p>Nell'area di Dwejra non perdete anche il <strong>Blue Hole</strong> — il pozzo marino collegato al mare aperto, uno dei siti di immersione più famosi del Mediterraneo. Affacciarsi dal bordo è già impressionante: l'acqua cambia da azzurro a blu scuro indaco verso il basso.</p>
+<p><strong>Parcheggio a Dwejra:</strong> segnalato, pochi euro per l'intera giornata, vicino all'accesso all'Inland Sea.</p>
+<p>📷 <strong>Consigli fotografici:</strong> dall'alto della scogliera sopra l'Inland Sea, fotografate verso il basso per catturare la laguna con la bocca del tunnel visibile. Dal bordo del Blue Hole, se il sole è alto, l'acqua nel pozzo diventa blu scuro indaco — straordinario in verticale.</p>
+<h3>Tardo pomeriggio — Ta' Ċenċ Cliffs al tramonto</h3>
+<p>Da Dwejra alle Ta' Ċenċ Cliffs sono circa 12 km verso sud-est, 18–20 minuti in auto in direzione del villaggio di Sannat. È la tappa più scenografica del pomeriggio: arrivate circa 45–60 minuti prima del tramonto (intorno alle 19:30–20:00 a fine giugno).</p>
+<p>Le <strong>Ta' Ċenċ Cliffs</strong> sono le scogliere più alte di Gozo — 138 metri di calcare verticale a picco sul Mediterraneo aperto, che si estendono per chilometri lungo la costa meridionale dell'isola. A differenza delle Dingli Cliffs a Malta, qui si respira una solitudine quasi totale: non ci sono bancarelle, non ci sono pullman, raramente si incrocia più di qualche camminatore. L'area è tecnicamente privata (terreno dell'Hotel Ta' Ċenċ &amp; Spa) ma l'accesso a piedi è consentito — comportatevi da ospiti rispettosi: niente droni, niente musica.</p>
+<p><strong>Come arrivare e parcheggio:</strong> dal villaggio di Sannat si segue la strada verso l'Hotel Ta' Ċenċ &amp; Spa. Poco prima dell'hotel si trova un piccolo parcheggio sterrato gratuito (coordinate GPS: 36°01'01.7"N 14°15'14.0"E) da cui parte il sentiero. Dal parcheggio alle scogliere sono circa 15 minuti a piedi su terreno facile. Lungo il percorso si incontrano antichi solchi carrai preistorici scavati nella roccia calcarea — uno dei dettagli più curiosi e meno noti di Gozo. Una volta raggiunta la costa, seguite il sentiero verso sinistra fino all'ampio pianoro che si sporge sul mare. Non ci sono barriere — massima attenzione sul bordo.</p>
+<p>Il paesaggio è completamente diverso da Dwejra: solo la scogliera calcarea che precipita verticalmente nell'acqua scura, il silenzio e il vento. Se siete fortunati, vedrete svolazzare le <strong>berte maggiori</strong> (Cory's Shearwaters) — la più grande colonia nidificante dell'arcipelago maltese vive proprio su queste scogliere, circa 1.000 coppie.</p>
+<p>Il tramonto da Ta' Ċenċ, con il sole che scende sul Mediterraneo aperto e la luce che tinge di arancio e rosa la roccia bianca, è considerato uno dei più belli di tutto l'arcipelago.</p>
+<p>📷 <strong>Consigli fotografici:</strong> posizionatevi sul pianoro principale con le scogliere che si estendono verso ovest — scattate in orizzontale per catturare tutta la lunghezza della parete calcarea che si curva verso l'orizzonte. Nei 30 minuti prima del tramonto la luce radente scolpisce ogni crepa e strato geologico della roccia. Provate anche la prospettiva verticale verso il basso dalla sommità — il contrasto tra la roccia bianca e il blu scuro dell'acqua profonda sotto è vertiginoso.</p>
+<h3>Sera — Xlendi: cena al The Boathouse e passeggiata sul lungomare</h3>
+<p>Da Ta' Ċenċ a Xlendi sono appena 8–10 minuti in auto, scendendo verso la costa sud-ovest. La tempistica è perfetta: arrivate a Xlendi nel tardo pomeriggio, avete il tempo di una breve passeggiata sulla baia prima che il sole cali del tutto, e poi a cena.</p>
+<p><strong>Xlendi</strong> è uno dei borghi più pittoreschi di Gozo: una baia raccolta tra scogliere calcaree, con barche da pesca ormeggiate, qualche piccolo hotel affacciato sull'acqua e una manciata di ristoranti sul lungomare. Di sera le luci si riflettono sulle barche a vela ormeggiate e l'atmosfera è tranquilla e autentica — molto diversa dall'animazione turistica di Marsalforn.</p>
+<p><strong>The Boathouse Restaurant</strong> — l'indirizzo per la cena di questa sera, senza dubbi.</p>
+<p>Situato direttamente sul bordo dell'acqua nella baia di Xlendi, accanto alla statua di Sant'Andrea nel pontile dei pescatori, The Boathouse è gestito da Joseph Attard e sua moglie Rose ed è il ristorante che i maltesi stessi citano quando si chiedono dove mangiare sull'isola sorella. L'ambiente è raffinato ma non formale: tavoli all'aperto sul lungomare, musica bassa, luci calde, il rumore dell'acqua a pochi centimetri. Il pesce è esposto in vetrina all'ingresso — quello che vedete è quello che arriva ogni giorno direttamente dai pescatori locali.</p>
+<p><strong>Da ordinare:</strong> i piatti signature sono la <strong>tagliata di tonno</strong> e il <strong>Trio di Calamari</strong> (calamari classici, fritti e alla griglia — tre preparazioni diverse sullo stesso piatto). Come primo, la pasta fresca con pesce del giorno. Per cominciare, i <em>gbejniet</em> grigliati come antipasto — la specialità gozitana che si scioglie dentro con la crosticina dorata esterna. Come dolce, il tiramisù è citato in molte recensioni come sorprendentemente leggero e cremoso. Da bere: chiedete un vino della piccola cantina gozitana <strong>Tal-Massar</strong> se disponibile, oppure un bianco fresco Meridiana.</p>
+<p>⚠️ <strong>Prenotazione obbligatoria:</strong> il locale si riempie sempre, anche in bassa stagione. Prenotate con qualche giorno di anticipo chiamando al +356 2756 7207 o tramite il sito theboathousegozo.com.</p>
+<p><strong>Dopo cena — passeggiata sul lungomare di Xlendi:</strong> il lungomare della baia è breve ma bellissimo di sera. Camminate fino alla punta del pontile dei pescatori: le luci dei ristoranti riflesse sull'acqua calma, le barche a vela ormeggiate che oscillano piano, le scogliere che chiudono la baia su entrambi i lati. È una delle scene serali più riuscite di Gozo.</p>
+<p>📷 <strong>Consiglio fotografico notturno:</strong> appoggiate lo smartphone orizzontale sul corrimano del lungomare per scatti stabili in modalità notte. I riflessi delle luci sull'acqua calma della baia, con le scogliere scure sullo sfondo, sono un soggetto completamente diverso da tutto quello che avete scattato durante la settimana.</p>
+<h3>Rientro a Malta — traghetto serale</h3>
+<p>Da Xlendi al porto di Mġarr sono circa 8 km, 12 minuti in auto. Puntate a imbarcarvi verso le 21:30–22:00 da Mġarr per arrivare a Ċirkewwa e rientrare a Marsaxlokk entro le 23:00 circa. Al ritorno fermatevi al casello di pagamento dove si paga per auto e passeggeri. Tenete carta o contanti a portata di mano.</p>
+<p><strong>Distanza Ċirkewwa → Marsaxlokk per il rientro:</strong> circa 50–55 km, 50–60 minuti. La strada di notte è scorrevole.</p>
+<p>📷 <strong>Consiglio fotografico sul traghetto:</strong> posizionatevi a prua per la vista su Malta che si avvicina — le luci dell'isola riflesse sul mare scuro sono una delle immagini più belle del viaggio. Appoggiate lo smartphone al corrimano per scatti stabili in modalità notte.</p>
+<p>🛍️ <strong>Riepilogo acquisti del giorno a Gozo:</strong> sale delle saline di Xwejni (al naturale, al timo o al rosmarino — l'acquisto più autentico dell'intera settimana), <em>gbejniet</em> freschi con pepe, olio d'oliva gozitano, marmellate artigianali e conserve dal mercato di It-Tokk, vino <strong>Tal-Massar</strong> o <strong>Meridiana</strong> acquistabile nei negozi di Victoria, <em>imqaret</em> freschi dal mercato mattutino. I prodotti di Gozo sono generalmente di qualità superiore a quelli di Malta: è il posto migliore per i souvenir gastronomici dell'intero viaggio.</p>
+</template>
+<template id="day-7-full">
+<h2>Giorno Martedì 30 giugno – Sud tranquillo: Blue Grotto, templi e ultimo mare</h2>
+<p>L'ultimo giorno pieno del viaggio ha un ritmo pensato bene: si inizia presto per sfruttare la luce migliore alla Blue Grotto, poi i due templi megalitici a pochi minuti di distanza, e nel pomeriggio una scelta: relax in acqua a Għar Lapsi — una delle calette più belle e meno conosciute del sud di Malta, perfetta come congedo dal mare — oppure rientro tranquillo verso Marsaxlokk. La sera, per non ripetere nulla dei giorni precedenti, una cena in uno dei ristoranti con vista sul mare di Wied iż-Żurrieq, a pochi minuti dai siti visitati al mattino.</p>
+<h3>Logistica del giorno</h3>
+<p><strong>Marsaxlokk → Blue Grotto (Wied iż-Żurrieq):</strong> circa 18–20 km, 20–25 minuti in auto. Prendete la strada verso Żurrieq seguendo le indicazioni; il sito è ben segnalato.</p>
+<p><strong>Blue Grotto → Ħaġar Qim:</strong> circa 3 km, 5 minuti in auto. I due siti sono praticamente uno vicino all'altro sulla stessa strada costiera.</p>
+<p><strong>Ħaġar Qim → Għar Lapsi:</strong> circa 6 km, 10 minuti verso nord-ovest.</p>
+<p><strong>Għar Lapsi → Marsaxlokk:</strong> circa 22 km, 25–30 minuti di rientro.</p>
+<h3>Mattina – Blue Grotto (Wied iż-Żurrieq)</h3>
+<p>Partenza da Marsaxlokk non oltre le <strong>8:30–9:00</strong>. È l'orario cruciale: il consiglio più importante per la Blue Grotto è arrivare di mattina. Idealmente prima delle 9:00, comunque prima delle 10:00. La differenza tra la grotta alle 9:00 e la stessa grotta alle 14:00 non è piccola: è la differenza tra la caverna illuminata dal basso in un azzurro elettrico vivido e la stessa caverna con luce ordinaria dall'alto. La stessa luce che crea l'effetto magico — il sole che penetra attraverso un'apertura sottomarina e rimbalza sul fondale bianco verso l'alto — scompare progressivamente col passare delle ore.</p>
+<p><strong>Parcheggio:</strong> si parcheggia in uno spiazzo gratuito vicino al punto panoramico. Il chiosco dei biglietti si trova nel porto, a circa 5 minuti a piedi dal parcheggio. Il parcheggio principale si riempie rapidamente dopo le 10:00. Troverete persone che vi indirizzano verso zone di sosta non ufficiali chiedendo €2–3 — abbiate qualche spicciolo con voi. Non siete obbligati a pagare per il parcheggio ufficiale, che è gratuito.</p>
+<p><strong>📍 Prima tappa — il Punto Panoramico (viewpoint dall'alto):</strong> prima di scendere al porto, fermatevi al belvedere sulla strada principale. Il viewpoint sul ciglio della scogliera offre la fotografia da cartolina dell'arco principale contro il mare. Fatelo nelle prime ore del mattino, con l'aria limpida e la scogliera che prende il sole radente. L'arco naturale chiamato localmente <em>Taħt il-Ħnejja</em> ("sotto l'arco") inquadra il mare azzurro profondo — una delle immagini più iconiche di Malta. Da qui vedete anche l'isolotto di Filfla all'orizzonte.</p>
+<p>📷 <strong>Consiglio fotografico:</strong> dal viewpoint scattate in verticale per catturare sia il bordo della scogliera bianca in primo piano che il mare sotto. La luce del mattino presto fa brillare la roccia calcarea come oro. Poi, in barca, fotografate verso l'esterno dalla grotta: la cornice buia della roccia con l'azzurro del mare aperto all'uscita è una delle inquadrature più spettacolari dell'intera settimana.</p>
+<p>## Tipi di escursione disponibili</p>
+<ul>
+  <li>Barche locali “standard” da Wied iż‑Żurrieq (quella che consiglio a voi)</li>
+</ul>
+<ul>
+  <li>Piccole barche da 8–10 persone condotte da barcaioli locali.</li>
+</ul>
+<ul>
+  <li>Giro breve nelle grotte (Blue Grotto + altre cavità, vista su Filfla e lungo la costa).</li>
+</ul>
+<ul>
+  <li>È l’opzione più economica e flessibile: arrivi, fai biglietto, aspetti il tuo turno e sali.</li>
+</ul>
+<ul>
+  <li>Escursioni organizzate (bus + barca) da Sliema/Valletta/zone turistiche</li>
+</ul>
+<ul>
+  <li>Pacchetti tipo “Blue Grotto + Marsaxlokk” o “Templi + Blue Grotto” con trasporto incluso; costano in genere da 35–40 € a persona in su.</li>
+</ul>
+<ul>
+  <li>Comode se non hai auto, ma per te che parti da Marsaxlokk sono meno sensate: ti vincolano a orari fissi e costano molto di più rispetto alla barca locale.</li>
+</ul>
+<p>Per voi: auto + barca locale da Wied iż‑Żurrieq è la combinazione più semplice, economica e flessibile.</p>
+<p>## Costi indicativi e durata</p>
+<p>Per la barca locale da Wied iż‑Żurrieq:</p>
+<ul>
+  <li>Prezzo indicativo attuale:</li>
+</ul>
+<ul>
+  <li>Circa 10 € per adulto.</li>
+</ul>
+<ul>
+  <li>Molte fonti riportano 8–10 € a persona con durata 20–30 minuti; è ragionevole aspettarsi una cifra intorno ai 10 € nel 2026.</li>
+</ul>
+<ul>
+  <li>I bambini spesso pagano una tariffa ridotta (in alcune recensioni metà prezzo), ma il listino preciso lo trovi affisso alla biglietteria.</li>
+</ul>
+<ul>
+  <li>Durata del giro: circa 20–25 minuti di navigazione nelle varie grotte e lungo la costa.</li>
+</ul>
+<p>Pagamento:</p>
+<ul>
+  <li>È fondamentale avere contanti: varie fonti segnalano che carte/app non sempre sono accettate alla biglietteria della Blue Grotto.</li>
+</ul>
+<p>## Come funziona, passo per passo</p>
+<ul>
+  <li>Arrivo e punto panoramico</li>
+</ul>
+<ul>
+  <li>Puoi fermarti prima al viewpoint in alto (zona “Panorama” / parcheggi) per la foto classica dell’arco roccioso visto dall’alto.</li>
+</ul>
+<ul>
+  <li>Biglietti e discesa al porto</li>
+</ul>
+<ul>
+  <li>Scendi a piedi verso il porticciolo di Wied iż‑Żurrieq.</li>
+</ul>
+<ul>
+  <li>Raggiungi il chiosco/biglietteria dove compri il ticket per la barca; lì trovi esposti gli orari e il prezzo aggiornato.</li>
+</ul>
+<ul>
+  <li>Attesa e imbarco</li>
+</ul>
+<ul>
+  <li>C’è un sistema di rotazione continua: le barche arrivano e partono di continuo, e l’attesa di solito non supera 20–30 minuti anche in alta stagione.</li>
+</ul>
+<ul>
+  <li>Il barcaiolo ti sistema a bordo con giubbetto salvagente e si parte subito per il giro tra le scogliere e le grotte.</li>
+</ul>
+<ul>
+  <li>Durante il giro</li>
+</ul>
+<ul>
+  <li>Si entra in diverse cavità, non solo nella “Blue Grotto” vera e propria: ad esempio grotte note per i riflessi particolari e per le forme della roccia (archi, “piede d’elefante”, ecc.).</li>
+</ul>
+<ul>
+  <li>La luce è migliore al mattino fino a circa le 13:00, quando il sole entra meglio e l’acqua assume i colori più intensi (turchese, verde, riflessi nelle pareti).</li>
+</ul>
+<ul>
+  <li>Rientro e tempo totale</li>
+</ul>
+<ul>
+  <li>Il giro dura complessivamente 20–30 minuti, poi si rientra al porticciolo.</li>
+</ul>
+<ul>
+  <li>Calcola in tutto 1–1,5 ore tra discesa, biglietto, eventuale coda, giro e risalita, perfetto per la vostra mattinata prima di andare ai templi.</li>
+</ul>
+<p>## Orari e condizioni meteo</p>
+<ul>
+  <li>Le barche operano tutti i giorni in condizioni normali, con maggiore continuità in estate.</li>
+</ul>
+<ul>
+  <li>Si fermano se il mare è mosso: per sicurezza non entrano nelle grotte, e in quel caso potrebbe esserci solo il viewpoint dall’alto; in estate (giugno–settembre) però le interruzioni sono rare.</li>
+</ul>
+<ul>
+  <li>Momento ideale per voi:</li>
+</ul>
+<ul>
+  <li>Arrivare in mattinata (9:00–11:00) da Marsaxlokk, così godete della luce migliore e trovate mare più calmo</li>
+</ul>
+<p>Dal belvedere sull'alto della scogliera si gode un panorama magnifico sull'arco roccioso e sulle grotte anche senza scendere in barca.</p>
+<p>⚠️ <strong>Nota pratica:</strong> controllate le condizioni meteo: le barche non escono con mare mosso. In estate le interruzioni sono rare, ma informatevi in albergo il giorno prima se ci sono previsioni di vento. Se le barche non escono, il viewpoint dall'alto vale comunque la sosta.</p>
+<p>📷 <strong>Consiglio fotografico:</strong> dalla terrazza panoramica sul Blue Grotto, scattare in verticale con il telefono per catturare sia le rocce in primo piano che il mare azzurro sotto. La luce migliore è la mattina; nel tardo pomeriggio i colori dell'acqua cambiano.</p>
+<h3>Ħaġar Qim e Mnajdra — i templi più antichi del mondo</h3>
+<p>Da Wied iż-Żurrieq ai templi sono circa 3 km, 5 minuti in auto verso est. Il sito è ben segnalato.</p>
+<p><strong>Parcheggio:</strong> c'è un parcheggio dedicato all'ingresso del parco per auto e pullman. Arrivate prima delle 10:00 in estate per assicurarvi un posto prima che arrivino i pullman turistici. Il parcheggio è gratuito.</p>
+<p><strong>Biglietti e orari:</strong> aperto dal lunedì alla domenica, dalle 9:00 alle 17:00. Il biglietto, unico per entrambi i siti, costa €10 per gli adulti e €5,50 per i bambini dai 6 agli 11 anni — include la visita al tempio di Mnajdra. Da giugno a ottobre l'orario è esteso fino alle 19:00. Nessuna prenotazione obbligatoria, ma si può acquistare online su heritagemalta.mt per evitare la coda.</p>
+<p><strong>Cosa vedere e cosa non perdere:</strong></p>
+<p>Questi sono i templi più vecchi al mondo, risalenti al 3600 a.C. — 1200 anni più vecchi delle piramidi in Egitto e 1000 anni più vecchi di Stonehenge. Nel 1992 sono stati dichiarati Patrimonio UNESCO.</p>
+<p>Il <strong>Visitor Centre</strong> introduce la storia con modelli in scala ridotta e video — vale una visita rapida di 10 minuti prima di entrare nel sito vero. Le audioguide sono scaricabili gratuitamente sul telefono tramite QR code all'ingresso, disponibili in italiano.</p>
+<p><strong>Ħaġar Qim:</strong> il tempio è coperto da una tensostruttura bianca per proteggerlo dalle intemperie — un "peccato scenico" visivo, ma necessario per preservare le pietre. All'interno si trovano grandi altari e il punto dove nel 1949 sono state ritrovate le statuette della dea della fertilità, conosciute come le "donne grasse" (le originali sono al Museo Nazionale di Archeologia a Valletta). Noterete anche le copie di bassorilievi a spirale — i dettagli decorativi più raffinati che questi costruttori anonimi abbiano lasciato.</p>
+<p><strong>Sentiero verso Mnajdra:</strong> la visita prosegue su un sentiero lastricato in discesa, circondato dalla vegetazione mediterranea, verso la seconda tensostruttura. Lungo il percorso si incontra anche una torre di osservazione e il Congreve Memorial, la tomba di un ufficiale inglese che si fece seppellire nel canale tra la costa e l'isolotto di Filfla. I 500 metri di cammino tra i due templi sono in realtà uno dei momenti più belli: la macchia mediterranea, il mare sullo sfondo, l'isolotto di Filfla all'orizzonte.</p>
+<p><strong>Mnajdra</strong> è il sito più affascinante dei due. Il tempio meridionale è perfettamente allineato con i raggi del sole durante i giorni dell'equinozio: all'alba, un raggio di luce entra attraverso l'asse principale toccando un punto preciso dell'altare. Il 21 giugno Heritage Malta organizza una visita guidata speciale all'alba per il solstizio d'estate — un'esperienza straordinaria se siete lì il giorno prima della vostra visita. Vale chiedersi: questi costruttori di 5.500 anni fa conoscevano i movimenti astronomici con una precisione che lascia senza parole.</p>
+<p>📷 <strong>Consigli fotografici:</strong> posizionatevi all'interno delle absidi di Ħaġar Qim con i megaliti in primo piano e il cielo azzurro come sfondo — la scala delle pietre rispetto alle persone è l'elemento visivo più potente. A Mnajdra, fotografate verso il mare attraverso l'ingresso del tempio principale: il Mediterraneo azzurro incorniciato dall'architettura megalitica è una composizione che non si trova da nessun'altra parte al mondo. Fotografate anche il sentiero di collegamento tra i due siti: l'isolotto di Filfla sullo sfondo con la vegetazione mediterranea in primo piano è un'immagine molto riuscita.</p>
+<h3>Pranzo — veloce, fuori dall'auto</h3>
+<p>Tenendo presente che il pomeriggio prevede ancora una tappa, il pranzo deve essere rapido e pratico.</p>
+<p><strong>Opzione A — panino o </strong><em><strong>ħobż biż-żejt</strong></em><strong> prima di partire:</strong> fermatevi in uno dei bar-chioschi a Wied iż-Żurrieq o a Qrendi (il paese più vicino ai templi, a circa 2 km) prima o dopo il giro in barca. Un panino maltese condito con olio, pomodoro, capperi e tonno è il pranzo ideale da consumare seduti sul muretto con vista sul mare prima di spostarvi ai templi.</p>
+<p><strong>Opzione B — il Visitor Centre di Ħaġar Qim:</strong> ha un piccolo bar interno con panini, bevande e snack — comodo se avete fame dopo la visita ai templi e volete mangiare all'ombra prima di ripartire.</p>
+<p><strong>Opzione C — sosta rapida a Żurrieq (5 minuti in auto dai templi):</strong> il villaggio di Żurrieq ha un paio di bar locali nella piazza principale dove si trovano <em>pastizzi</em> caldi e bibite fresche. Economico e genuino.</p>
+<h3>Pomeriggio — Għar Lapsi: l'ultimo bagno del viaggio</h3>
+<p>Da Ħaġar Qim a Għar Lapsi sono circa 6 km verso nord-ovest, 10 minuti in auto attraverso la campagna maltese.</p>
+<p>Għar Lapsi è sulla costa sud-ovest di Malta, una piccola insenatura rocciosa apprezzata per le sue acque cristalline, le condizioni di nuoto riparate e le formazioni naturali sottomarine. Diversamente dalle grandi baie sabbiose, Għar Lapsi ha un'atmosfera intima e incontaminata. Le scogliere calcaree circondano l'insenatura creando acque calme, ideali per nuotare e fare snorkelling.</p>
+<p>L'acqua è bellissima e l'accesso al mare avviene tramite scalette. Non ci sono lettini o servizi organizzati, quindi si posano le cose sulla roccia e si fa il bagno. Il parcheggio è disponibile. Gratuito, ampio, a pochi passi dall'accesso all'acqua.</p>
+<p>Questo posto è frequentato quasi esclusivamente dai maltesi — non è sulle mappe dei circuiti turistici standard e si respira un'atmosfera completamente diversa rispetto alla Blue Lagoon o a St. Peter's Pool. Per un ragazzo di 14 anni con maschera e pinne è un posto eccellente: c'è un bellissimo sistema di grotte lungo più di 40 metri, poco profondo e ben illuminato, con molte fessure nel soffitto che lasciano entrare la luce solare. Nei fondali si trovano orate mediterranee, murene, cernie, polpi, seppie e stelle marine rosse.</p>
+<p>⚠️ <strong>Importante:</strong> non ci sono spiagge sabbiose né servizi organizzati. Portate tutto voi: telo, acqua abbondante, crema solare, scarpe da scoglio.</p>
+<p>Le barche dei pescatori di Għar Lapsi fanno anche giri in barca fino alla Blue Grotto (3,5 km), con un percorso in mare aperto più lungo rispetto a quello standard da Wied iż-Żurrieq. Se avete ancora voglia di mare in barca nel pomeriggio è un'opzione curiosa — chiedete direttamente ai barcaioli sul posto.</p>
+<p>📷 <strong>Consiglio fotografico:</strong> Għar Lapsi è meno fotografata rispetto alle altre location della settimana, il che la rende più interessante. Fotografate dall'alto degli scogli verso la piccola insenatura con le barche dei pescatori ancorate — la scala umana delle barchette rispetto alle falesie calcaree bianche è una composizione molto bella. Con la maschera sott'acqua, se avete uno smartphone waterproof o una GoPro, i fondali rocciosi con i giochi di luce filtrata sono straordinari.</p>
+<p>## Consigli pratici per voi tre</p>
+<ul>
+  <li>Portate contanti per la barca (almeno 30–40 € per stare larghi per i tre biglietti + eventuali snack).</li>
+</ul>
+<ul>
+  <li>Scarpe con suola buona: la discesa e risalita a Wied iż‑Żurrieq è breve ma ripida, e vi muoverete poi anche sui sentieri dei templi.</li>
+</ul>
+<ul>
+  <li>Per il ragazzo: questo è un giorno “wow” a livello visivo, tra grotte, mare blu e templi preistorici, quindi vale la pena portare maschera/occhialini se pensate di fare un tuffo nella zona del canale (dove è sicuro e segnalato) dopo il giro</li>
+</ul>
+<h3>Sosta curiosa — Maqhluba (voragine di Qrendi): deviazione di 5 minuti</h3>
+<p>Se avete ancora curiosità e un po' di energie, lungo la strada tra Ħaġar Qim e Għar Lapsi (o al ritorno), a circa 2 km dai templi nei pressi di Qrendi, si trova la <strong>Maqhluba</strong> — una voragine naturale larga circa 45 metri e profonda 30, precipitata millenni fa quando una caverna sotterranea è collassata. Nei pressi del villaggio di Qrendi si trova questo enorme "sinkhole", ossia una voragine o dolina. Oggi il fondo è ricoperto di vegetazione e alcune fonti locali narrano di un villaggio medievale che vi sprofondò durante un'alluvione nel 1343. L'accesso è libero e gratuito, il parcheggio sulla strada. Non è un posto da fare per forza — ma se siete in zona e volete qualcosa di insolito e completamente fuori dai circuiti, vale cinque minuti.</p>
+<h3>Aperitivo — direttamente a Wied iż-Żurrieq</h3>
+<p>Invece di rientrare a Marsaxlokk per l'aperitivo, fermatevi direttamente a Wied iż-Żurrieq, il piccolo porto da cui avete preso la barca al mattino. La zona intorno al porticciolo ha diversi locali con tavoli affacciati sul mare.</p>
+<p><strong>Aalto</strong> (Triq Is-Sajjieda, Wied iż-Żurrieq, #1 a Qrendi su Tripadvisor) è un locale con vista panoramica sul porto e sulla costa. Le recensioni più recenti descrivono un'atmosfera rilassata con vista magnifica — ideale per un aperitivo mentre il sole scende sul Mediterraneo aperto. Una Cisk alla spina o un Aperol guardando l'isolotto di Filfla all'orizzonte è un modo perfetto per salutare il mare di Malta.</p>
+<p>In alternativa, il <strong>Blue Cave Bar </strong><strong>&amp;</strong><strong> Restaurant</strong> è a pochi passi con tavolini vista mare e un'atmosfera informale adatta a una famiglia.</p>
+<p>📷 <strong>Tramonto a Wied iż-Żurrieq:</strong> il sole tramonta esattamente nella direzione dell'arco naturale della Blue Grotto. Se siete in posizione sul molo o sugli scogli sopra il porto verso le 20:00, il cielo arancione sopra il Mediterraneo aperto con l'arco roccioso in silhouette è una delle immagini più riuscite dell'intera settimana. Posizionatevi circa 30 minuti prima del tramonto.</p>
+<h3>Cena — Il Corsaro (Wied iż-Żurrieq, altamente consigliata)</h3>
+<p>Invece di rientrare a Marsaxlokk, cenate direttamente qui. Il Corsaro, incastonato nel villaggio di Wied iż-Żurrieq, è un piccolo ristorante che cattura l'essenza della cucina mediterranea. Con un menu che cambia ogni giorno in base agli ingredienti stagionali e alla disponibilità, è il paradiso degli amanti del pesce. Il ristorante si distingue per ingredienti di alta qualità abbinati a un'impressionante selezione di vini, serviti con genuina passione.</p>
+<p>Il proprietario è lo chef Simone, un italiano innamorato del mare maltese. Simone è un vero chef di talento — se cercate pesce freschissimo, Simone è il vostro uomo. L'antipasto con selezione di pesce crudo e la pasta ai ricci di mare sono piatti da non perdere. Da ordinare: la bruschetta con gamberi (citata ovunque nelle recensioni), il carpaccio di polpo, la pasta del giorno — che cambia ogni mattina in base al pescato. Il tiramisu come dolce conclusivo è descritto come leggero e cremoso.</p>
+<p>⚠️ <strong>Attenzione importante:</strong> Il Corsaro è tra i migliori ristoranti di pesce dell'isola per qualità, ma i prezzi possono essere alti — specialmente per il pesce venduto a peso. Chiedete sempre il prezzo del pesce prima di ordinare e, se volete tenere il conto sotto controllo, puntate sui primi e sugli antipasti che sono generalmente più accessibili. Il conto per tre persone con vino si aggira facilmente sui €80–120. <strong>Prenotazione obbligatoria</strong> — il locale è piccolissimo, spesso esaurito anche a giugno. Chiamate in anticipo o prenotate tramite i canali social del ristorante.</p>
+<p><strong>Alternativa più economica — Coast at Cassarini Restaurant</strong> (sempre a Wied iż-Żurrieq, Triq Is-Sajjieda): recensioni molto positive tra i locali di Qrendi, con cucina di mare a prezzi più contenuti rispetto a Il Corsaro. Ambiente informale, tavolini con vista mare. Ottimo se non riuscite a prenotare Il Corsaro o preferite spendere meno senza rinunciare alla qualità.</p>
+<p><strong>Cosa ordinare questa sera:</strong> è l'ultima cena "in giro" — fatela bella. Se siete a Il Corsaro, lasciatevi guidare dallo chef sulla lavagna del giorno. Il <strong>gurbell</strong> (cernia maltese) quando disponibile è citato come uno dei piatti più memorabili. La <strong>pasta fresca con pesce spada o ricci</strong> è un primo da non perdere. Da bere: chiedete un bianco maltese — lo chef Simone conosce i produttori locali e saprà consigliarvi qualcosa di piccolo e interessante che non trovate altrove.</p>
+<h3>Dopo cena — passeggiata serale a Marsaxlokk con visita all'acquario</h3>
+<p>Rientro verso Marsaxlokk (circa 20 km, 25 minuti). Questa sera, per una passeggiata diversa da quelle già fatte sul lungomare, una deviazione curiosa: il <strong>Birzebbugha Aquarium</strong> (conosciuto come "Malta National Aquarium" gestito da Heritage Malta, a Birzebbugha, circa 10 minuti da Marsaxlokk verso nord) è aperto fino alle 21:00 in estate. Piccolo ma ben fatto, mostra la fauna marina maltese e mediterranea in vasche illuminate di sera — per un ragazzo di 14 anni dopo una giornata di mare è un modo diverso di concludere. Ingresso circa €5 adulti, €2,50 ragazzi.</p>
+<p><strong>Oppure — Marsaxlokk by night, questa volta dalla direzione del Forte:</strong> anziché il solito lungomare, camminate dall'altra parte del porto verso Fort St. Lucian. Di notte il percorso (15 minuti a piedi dal centro) è silenzioso e buio, con la baia illuminata dalle luci del porto davanti a voi — i <em>luzzu</em> che oscillano sull'acqua nera, le luci lontane di Birżebbuġa, il riflesso della luna sull'acqua. È una scena completamente diversa da quella del lungomare affollato.</p>
+<p><strong>Gelato diverso per l'ultima sera:</strong> se volete qualcosa di dolce prima di dormire, cercate la <strong>Maryrose Confectionary</strong> in paese — una pasticceria locale non turistica che produce dolci tradizionali maltesi: <em>kannoli</em> con ricotta fresca, <em>qassatat</em> dolci, <em>pastizzi tal-irkotta</em> nelle versioni da dessert. È il posto che i marsaxlokkesi frequentano — non quello raccomandato dalle guide, quello con la fila dei locali il martedì sera.</p>
+<p>📷 <strong>Consiglio fotografico notturno:</strong> appoggiate lo smartphone orizzontale sul bordo del muretto del porto per una lunga esposizione in modalità notte. I <em>luzzu</em> con i riflessi colorati sull'acqua calma — giallo, rosso, blu — con le luci del paese sullo sfondo sono una delle immagini più belle da portare a casa. Il martedì sera il porto è quieto: meno gente, meno disturbi, luce più uniforme.</p>
+<p>🛍️ <strong>Ultimi acquisti prima di partire domani:</strong></p>
+<p>Prima di tornare in guesthouse, se qualcosa manca ancora alla lista dei souvenir, i negozi sul lungomare di Marsaxlokk restano aperti fino alle 21:00–21:30. Priorità per domani mattina (partenza ore 10:30–10:45): confezionate tutto la sera prima. I liquidi vanno nel bagaglio da stiva; i formaggi <em>gbejniet</em> al sicuro in un sacchetto richiudibile con carta assorbente.</p>
+<p><strong>Lista di controllo finale souvenir:</strong></p>
+<ul>
+  <li>Miele maltese (carrubo o timo) — negozietti del lungomare</li>
+</ul>
+<ul>
+  <li><em>Qagħaq tal-għasel</em> e <em>imqaret</em> — pasticceria locale</li>
+</ul>
+<ul>
+  <li>Capperi sotto sale e conserve San Elmo — supermercato</li>
+</ul>
+<ul>
+  <li>Vino Meridiana o Marsovin in bottiglia — supermercato o enoteca</li>
+</ul>
+<ul>
+  <li>Kinnie e Cisk in lattina — supermercato</li>
+</ul>
+<ul>
+  <li>Sale marino di Gozo aromatizzato — (se non ancora comprato)</li>
+</ul>
+<ul>
+  <li>Ceramiche o vetro soffiato — botteghe del lungomare</li>
+</ul>
+<ul>
+  <li>Croce di Malta in argento — oreficeria locale</li>
+</ul>
+</template>
+<template id="day-8-full">
+<h2>Giorno Mercoledì 1 luglio – Partenza</h2>
+<p>Volo di ritorno Malta → Roma Fiumicino alle 12:30. Distanza Marsaxlokk–aeroporto: circa 15–25 minuti. Partire dal Duncan Guesthouse intorno alle <strong>10:30–10:45</strong> per arrivare con margine tranquillo, considerando la riconsegna dell'auto e i controlli aeroportuali.</p>
+<p>Consegna dell'auto a noleggio all'aeroporto internazionale di Malta, check-in e imbarco.</p>
+<p>## Riepilogo souvenir e prodotti tipici</p>
+<p><strong>Alimentari da riportare in Italia:</strong> miele di carrubo e di timo, <em>qagħaq tal-għasel</em> (biscotti ad anello), <em>imqaret</em> (pasticcini ai datteri), croccanti di mandorle, capperi sotto sale, conserve di pomodoro, olio d'oliva maltese e gozitano, formaggi <em>gbejniet</em> di Gozo (freschi o stagionati al pepe), vini maltesi (Marsovin, Meridiana), Kinnie e Cisk in lattina o bottiglia, sale marino delle saline di Gozo.</p>
+<p><strong>Non alimentari:</strong> ceramiche dipinte con motivi marini, vetro soffiato colorato, merletti maltesi (pizzo tradizionale), miniature e stampe dei <em>luzzu</em>, croce di Malta in argento o legno, teli e cappelli con motivi maltesi.</p>
+<p><strong>Dove comprare:</strong> mercato domenicale di Marsaxlokk (prodotti tipici e alimentari), botteghe artigiane di Valletta (ceramiche, merletti, vetro), supermercati (Kinnie, Cisk, formaggi confezionati, conserve), mercatini di Gozo e Victoria (prodotti gozitani di qualità superiore).</p>
+<p>## Riepilogo fotografico dei momenti da non perdere</p>
+<ul>
+  <li><strong>Marsaxlokk all'alba:</strong> i <em>luzzu</em> colorati con la luce dorata del mattino, i riflessi sull'acqua calma del porto</li>
+</ul>
+<ul>
+  <li><strong>Mercato domenicale:</strong> i banchi del pesce con i pescatori, i colori vivaci delle bancarelle, la vita autentica del borgo</li>
+</ul>
+<ul>
+  <li><strong>St. Peter's Pool dall'alto:</strong> la forma a piscina naturale con il mare turchese, foto verticale</li>
+</ul>
+<ul>
+  <li><strong>Hofriet Window:</strong> l'arco naturale nella roccia con il mare sullo sfondo</li>
+</ul>
+<ul>
+  <li><strong>Valletta:</strong> balconi in legno colorato, vicoli in pendenza, i cannoni di Upper Barrakka con il Grand Harbour</li>
+</ul>
+<ul>
+  <li><strong>Mdina all'alba:</strong> vicoli deserti, porte colorate, la pietra calcarea che brilla nella luce del mattino presto</li>
+</ul>
+<ul>
+  <li><strong>Dingli Cliffs al tramonto:</strong> le scogliere a picco con il cielo arancione e l'isolotto di Filfla</li>
+</ul>
+<ul>
+  <li><strong>Cittadella di Gozo:</strong> i bastioni con la vista a 360° sull'isola</li>
+</ul>
+<ul>
+  <li><strong>Saline di Marsalforn:</strong> le vasche a terrazze nella roccia bianca con il mare sullo sfondo</li>
+</ul>
+<ul>
+  <li><strong>Blue Lagoon dall'alto:</strong> il contrasto tra l'acqua turchese, la roccia bianca e le barche</li>
+</ul>
+<ul>
+  <li><strong>Blue Grotto:</strong> la luce blu fosforescente nelle grotte, le rocce dall'alto</li>
+</ul>
+<p><em>Buon viaggio a Malta! </em></p>
+</template>
+</body>
+</html>
